@@ -7,17 +7,148 @@
 
 import SwiftUI
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
+struct Question {
+    let text: String
+    let options: [String]
+    let correctIndex: Int
 }
+
+struct ContentView: View {
+    
+    let questions: [Question] = [
+        Question(text: "What is the capital of France?",
+                 options: ["London", "Berlin", "Paris", "Madrid"],
+                 correctIndex: 2),
+        Question(text: "How many planets are in our solar system?",
+                 options: ["7", "8", "9", "10"],
+                 correctIndex: 1),
+        Question(text: "Which animal is the fastest on land?",
+                 options: ["Lion", "Horse", "Cheetah", "Greyhound"],
+                 correctIndex: 2),
+    ]
+    
+    @State private var currentIndex = 0
+    @State private var score = 0
+    @State private var selectedAnswer: Int? = nil
+    @State private var quizFinished = false
+    @State private var gameStarted = false
+    
+    func handleAnswer(_ selectedIndex: Int) {
+        selectedAnswer = selectedIndex
+        if selectedIndex == questions[currentIndex].correctIndex {
+            score += 1
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { selectedAnswer = nil
+            if currentIndex + 1 < questions.count {
+                currentIndex += 1
+            } else {
+                quizFinished = true
+            }
+        }
+    }
+    func buttonColor(for index: Int) -> Color {
+        guard let selected = selectedAnswer else {
+            return Color.white.opacity(0.2) //no answer yet, default color
+        }
+        if index == questions[currentIndex].correctIndex {
+            return Color.green.opacity(0.85) // always show correct in green
+        }
+        if index == selected {
+            return Color.red.opacity(0.75) //wrong choice turns red
+        }
+        return Color.white.opacity(0.1) // other buttons go dim
+    }
+    func restartQuiz() {
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        quizFinished = false
+        gameStarted = false
+    }
+    var body: some View {
+        if !gameStarted {
+            ZStack {
+                Color.indigo.ignoresSafeArea()
+                VStack(spacing: 24) {
+                    Text("🧠")
+                        .font(.system(size: 80))
+                    Text("Quiz App")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            Text("Test your knowledge!")
+                                .font(.title3)
+                                .foregroundColor(.white.opacity(0.8))
+                            Button("Start Quiz") {
+                                gameStarted = true
+                            }
+                            .font(.headline)
+                            .foregroundColor(.indigo)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
+                    }
+                } else if quizFinished {
+            ZStack {
+                Color.indigo.ignoresSafeArea()
+                VStack(spacing: 24) {
+                    Text("🏆")
+                        .font(.system(size: 80))
+                    Text("Quiz Complete!")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    Text("You scored \(score) out of \(questions.count)")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                    Button("Play Again") {
+                        restartQuiz()
+                    }
+                    .font(.headline)
+                    .foregroundColor(.indigo)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                }
+            }
+        }else{
+            ZStack {
+                Color.indigo.ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    
+                    Text(questions[currentIndex].text)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    
+                    ForEach(0..<questions[currentIndex].options.count, id: \.self) { i in
+                        Button(questions[currentIndex].options[i]) {
+                            handleAnswer(i)
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(buttonColor(for: i))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    
+                }
+                .padding()
+            }
+        }
+        }
+    }
+
 
 #Preview {
     ContentView()
