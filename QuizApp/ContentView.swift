@@ -119,9 +119,18 @@ struct ContentView: View {
         }else{
             ZStack {
                 Color.indigo.ignoresSafeArea()
-                
+                // Counter pinned to top right
+                VStack {
+                    HStack {
+                        Spacer()
+                        Text("Question \(currentIndex + 1) of \(questions.count)")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.75))
+                            .padding()
+                    }
+                    Spacer()
+                }
                 VStack(spacing: 24) {
-                    
                     Text(questions[currentIndex].text)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -153,3 +162,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+
