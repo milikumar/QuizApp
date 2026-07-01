@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var currentSetIndex: Int = 0
     @State private var categorySelected = false
     @State private var setCounts: [Int: Int] = [:]
+    @State private var isLoading = false
 
     func handleAnswer(_ selectedIndex: Int) {
         selectedAnswer = selectedIndex
@@ -68,6 +69,7 @@ struct ContentView: View {
         selectedAnswer = nil
         quizFinished = false
         gameStarted = false
+        categorySelected = true
         let picked = pickRandomSet()
         shuffledQuestions = questionSets[picked].questions.map { question in
             Question(text: question.text,
@@ -75,15 +77,51 @@ struct ContentView: View {
                      correctAnswer: question.correctAnswer)
         }
     }
+    func startSet(index: Int) {
+        isLoading = true
+        let categoryName = questionSets[index].name
+        
+        fetchQuestions(for: categoryName) { questions in
+            DispatchQueue.main.async {
+                isLoading = false
+                if let questions = questions {
+                    // API worked, use online questions
+                    shuffledQuestions = questions
+                } else {
+                    // No internet, use backup questions
+                    shuffledQuestions = questionSets[index].questions.map { question in
+                        Question(text: question.text,
+                                 options: question.options.shuffled(),
+                                 correctAnswer: question.correctAnswer)
+                    }
+                }
+                currentSetIndex = index
+                gameStarted = true
+                categorySelected = false
+            }
+        }
+    }
 
     var body: some View {
-        if !gameStarted && !categorySelected {
+        if isLoading {
+            ZStack {
+                Color.indigo.ignoresSafeArea()
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(1.5)
+                    Text("Loading questions...")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                }
+            }
+        } else if !gameStarted && !categorySelected {
             ZStack {
                 Color.indigo.ignoresSafeArea()
                 VStack(spacing: 24) {
                     Text("🧠")
                         .font(.system(size: 80))
-                    Text("Quiz App")
+                    Text("Cleverr Mind")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -123,15 +161,10 @@ struct ContentView: View {
                         // Random button
                         Button(action: {
                             let picked = pickRandomSet()
-                            shuffledQuestions = questionSets[picked].questions.map { question in
-                                Question(text: question.text,
-                                         options: question.options.shuffled(),
-                                         correctAnswer: question.correctAnswer)
-                            }
-                            gameStarted = true
-                            categorySelected = false
+                            startSet(index: picked)
                         }) {
                             Text("🎲 Random")
+
                                 .font(.headline)
                                 .foregroundColor(.indigo)
                                 .frame(maxWidth: .infinity)
@@ -144,15 +177,7 @@ struct ContentView: View {
                         // Category buttons
                         ForEach(0..<questionSets.count, id: \.self) { i in
                             Button(action: {
-                                let picked = i
-                                currentSetIndex = picked
-                                shuffledQuestions = questionSets[picked].questions.map { question in
-                                    Question(text: question.text,
-                                             options: question.options.shuffled(),
-                                             correctAnswer: question.correctAnswer)
-                                }
-                                gameStarted = true
-                                categorySelected = false
+                                startSet(index: i)
                             }) {
                                 HStack {
                                     Text(questionSets[i].name)
@@ -244,6 +269,7 @@ struct ContentView: View {
                                 .background(buttonColor(for: i))
                                 .cornerRadius(12)
                         }
+                        .disabled(selectedAnswer != nil)
                     }
                     .padding(.horizontal)
                 }
