@@ -30,6 +30,7 @@ struct ContentView: View {
             if currentIndex + 1 < questionSets[currentSetIndex].questions.count {
                 currentIndex += 1
             } else {
+                setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
                 quizFinished = true
             }
         }
@@ -111,66 +112,66 @@ struct ContentView: View {
         } else if categorySelected && !gameStarted {
             ZStack {
                 Color.indigo.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    Text("Choose a Category")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding()
-
-                    // Random button
-                    Button(action: {
-                        let picked = pickRandomSet()
-                        shuffledQuestions = questionSets[picked].questions.map { question in
-                                Question(text: question.text,
-                                         options: question.options.shuffled(),
-                                         correctAnswer: question.correctAnswer)
-                            }
-                        setCounts[picked] = (setCounts[picked] ?? 0) + 1
-                        gameStarted = true
-                        categorySelected = false
-                    }) {
-                        Text("🎲 Random")
-                            .font(.headline)
-                            .foregroundColor(.indigo)
-                            .frame(maxWidth: .infinity)
+                ScrollView {
+                    VStack(spacing: 16) {
+                        Text("Choose a Category")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
                             .padding()
-                            .background(Color.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-
-                    // Category buttons
-                    ForEach(0..<questionSets.count, id: \.self) { i in
+                        
+                        // Random button
                         Button(action: {
-                            let picked = i
-                            currentSetIndex = picked
+                            let picked = pickRandomSet()
                             shuffledQuestions = questionSets[picked].questions.map { question in
                                 Question(text: question.text,
                                          options: question.options.shuffled(),
                                          correctAnswer: question.correctAnswer)
                             }
-                            setCounts[i] = (setCounts[i] ?? 0) + 1
                             gameStarted = true
                             categorySelected = false
                         }) {
-                            HStack {
-                                Text(questionSets[i].name)
-                                Spacer()
-                                if let count = setCounts[i] {
-                                    Text("Played \(count)x")
-                                        .font(.caption)
-                                        .opacity(0.7)
+                            Text("🎲 Random")
+                                .font(.headline)
+                                .foregroundColor(.indigo)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Category buttons
+                        ForEach(0..<questionSets.count, id: \.self) { i in
+                            Button(action: {
+                                let picked = i
+                                currentSetIndex = picked
+                                shuffledQuestions = questionSets[picked].questions.map { question in
+                                    Question(text: question.text,
+                                             options: question.options.shuffled(),
+                                             correctAnswer: question.correctAnswer)
                                 }
-                            }
+                                gameStarted = true
+                                categorySelected = false
+                            }) {
+                                HStack {
+                                    Text(questionSets[i].name)
+                                    Spacer()
+                                    if let count = setCounts[i] {
+                                        Text("Played \(count)x")
+                                            .font(.caption)
+                                            .opacity(0.7)
+                                    }
+                                }
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.white.opacity(0.2))
                                 .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                     }
                 }
             }
@@ -204,6 +205,18 @@ struct ContentView: View {
                 Color.indigo.ignoresSafeArea()
                 VStack {
                     HStack {
+                        Button(action: {
+                            gameStarted = false
+                            categorySelected = true
+                            currentIndex = 0
+                            score = 0
+                            selectedAnswer = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white.opacity(0.75))
+                                .padding()
+                        }
                         Spacer()
                         Text("Question \(currentIndex + 1) of \(questionSets[currentSetIndex].questions.count)")
                             .font(.subheadline)
