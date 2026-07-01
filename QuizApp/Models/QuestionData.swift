@@ -7,75 +7,72 @@
 
 import Foundation
 
-let questionSets: [[Question]] = [
-    [
-        // random set
-    Question(text: "What is the capital of Australia?",
-                options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
-                correctAnswer: "Canberra"),
-    Question(text: "How many bones are in the human body?",
-                options: ["196", "206", "216", "226"],
-                correctAnswer: "206"),
-    Question(text: "What is the largest ocean on Earth?",
-                options: ["Atlantic", "Indian", "Arctic", "Pacific"],
-                correctAnswer: "Pacific"),
-    Question(text: "Which planet has the most moons?",
-                options: ["Jupiter", "Saturn", "Uranus", "Neptune"],
-                correctAnswer: "Saturn"),
-    Question(text: "What year did World War II end?",
-                options: ["1943", "1944", "1945", "1946"],
-                correctAnswer: "1945"),
-    Question(text: "What is the chemical symbol for gold?",
-                options: ["Go", "Gd", "Au", "Ag"],
-                correctAnswer: "Au"),
-    Question(text: "How many hearts does an octopus have?",
-                options: ["1", "2", "3", "4"],
-                correctAnswer: "3"),
-    Question(text: "What is the capital of Japan?",
-                options: ["Beijing", "Seoul", "Tokyo", "Bangkok"],
-                correctAnswer: "Tokyo"),
-    Question(text: "Which country has the longest coastline?",
-                options: ["Russia", "USA", "Australia", "Canada"],
-                correctAnswer: "Canada"),
-    Question(text: "What is the speed of light in km/s?",
-                options: ["200,000", "300,000", "400,000", "500,000"],
-                correctAnswer: "300,000"),
-],
-[
-    // science and nature set
-    Question(text: "What gas do plants absorb from the atmosphere?",
-             options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
-             correctAnswer: "Carbon Dioxide"),
-    Question(text: "How many chambers does a human heart have?",
-             options: ["2", "3", "4", "5"],
-             correctAnswer: "4"),
-    Question(text: "What is the hardest natural substance on Earth?",
-             options: ["Gold", "Iron", "Diamond", "Quartz"],
-             correctAnswer: "Diamond"),
-    Question(text: "What planet is known as the Red Planet?",
-             options: ["Venus", "Mars", "Jupiter", "Saturn"],
-             correctAnswer: "Mars"),
-    Question(text: "How many chromosomes do humans have?",
-             options: ["23", "44", "46", "48"],
-             correctAnswer: "46"),
-    Question(text: "What is the powerhouse of the cell?",
-             options: ["Nucleus", "Ribosome", "Mitochondria", "Cytoplasm"],
-             correctAnswer: "Mitochondria"),
-    Question(text: "What is the most abundant gas in Earth's atmosphere?",
-             options: ["Oxygen", "Carbon Dioxide", "Hydrogen", "Nitrogen"],
-             correctAnswer: "Nitrogen"),
-    Question(text: "How many teeth does an adult human have?",
-             options: ["28", "30", "32", "34"],
-             correctAnswer: "32"),
-    Question(text: "What is the closest star to Earth?",
-             options: ["Sirius", "The Sun", "Proxima Centauri", "Betelgeuse"],
-             correctAnswer: "The Sun"),
-    Question(text: "What organ produces insulin?",
-             options: ["Liver", "Kidney", "Heart", "Pancreas"],
-             correctAnswer: "Pancreas"),
-],
-    // Set 3 - History
-    [
+let questionSets: [QuestionSet] = [
+    QuestionSet(name: "General Knowledge", questions: [
+        Question(text: "What is the capital of Australia?",
+                 options: ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+                 correctAnswer: "Canberra"),
+        Question(text: "How many bones are in the human body?",
+                 options: ["196", "206", "216", "226"],
+                 correctAnswer: "206"),
+        Question(text: "What is the largest ocean on Earth?",
+                 options: ["Atlantic", "Indian", "Arctic", "Pacific"],
+                 correctAnswer: "Pacific"),
+        Question(text: "Which planet has the most moons?",
+                 options: ["Jupiter", "Saturn", "Uranus", "Neptune"],
+                 correctAnswer: "Saturn"),
+        Question(text: "What year did World War II end?",
+                 options: ["1943", "1944", "1945", "1946"],
+                 correctAnswer: "1945"),
+        Question(text: "What is the chemical symbol for gold?",
+                 options: ["Go", "Gd", "Au", "Ag"],
+                 correctAnswer: "Au"),
+        Question(text: "How many hearts does an octopus have?",
+                 options: ["1", "2", "3", "4"],
+                 correctAnswer: "3"),
+        Question(text: "What is the capital of Japan?",
+                 options: ["Beijing", "Seoul", "Tokyo", "Bangkok"],
+                 correctAnswer: "Tokyo"),
+        Question(text: "Which country has the longest coastline?",
+                 options: ["Russia", "USA", "Australia", "Canada"],
+                 correctAnswer: "Canada"),
+        Question(text: "What is the speed of light in km/s?",
+                 options: ["200,000", "300,000", "400,000", "500,000"],
+                 correctAnswer: "300,000"),
+    ]),
+    QuestionSet(name: "Science & Nature", questions: [
+        Question(text: "What gas do plants absorb from the atmosphere?",
+                 options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+                 correctAnswer: "Carbon Dioxide"),
+        Question(text: "How many chambers does a human heart have?",
+                 options: ["2", "3", "4", "5"],
+                 correctAnswer: "4"),
+        Question(text: "What is the hardest natural substance on Earth?",
+                 options: ["Gold", "Iron", "Diamond", "Quartz"],
+                 correctAnswer: "Diamond"),
+        Question(text: "What planet is known as the Red Planet?",
+                 options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                 correctAnswer: "Mars"),
+        Question(text: "How many chromosomes do humans have?",
+                 options: ["23", "44", "46", "48"],
+                 correctAnswer: "46"),
+        Question(text: "What is the powerhouse of the cell?",
+                 options: ["Nucleus", "Ribosome", "Mitochondria", "Cytoplasm"],
+                 correctAnswer: "Mitochondria"),
+        Question(text: "What is the most abundant gas in Earth's atmosphere?",
+                 options: ["Oxygen", "Carbon Dioxide", "Hydrogen", "Nitrogen"],
+                 correctAnswer: "Nitrogen"),
+        Question(text: "How many teeth does an adult human have?",
+                 options: ["28", "30", "32", "34"],
+                 correctAnswer: "32"),
+        Question(text: "What is the closest star to Earth?",
+                 options: ["Sirius", "The Sun", "Proxima Centauri", "Betelgeuse"],
+                 correctAnswer: "The Sun"),
+        Question(text: "What organ produces insulin?",
+                 options: ["Liver", "Kidney", "Heart", "Pancreas"],
+                 correctAnswer: "Pancreas"),
+    ]),
+    QuestionSet(name: "History", questions: [
         Question(text: "Who was the first President of the United States?",
                  options: ["John Adams", "Thomas Jefferson", "George Washington", "Benjamin Franklin"],
                  correctAnswer: "George Washington"),
@@ -106,10 +103,8 @@ let questionSets: [[Question]] = [
         Question(text: "What ancient wonder was located in Alexandria?",
                  options: ["Colossus", "Hanging Gardens", "Great Lighthouse", "Statue of Zeus"],
                  correctAnswer: "Great Lighthouse"),
-    ],
-
-    // Set 4 - Geography
-    [
+    ]),
+    QuestionSet(name: "Geography", questions: [
         Question(text: "What is the longest river in the world?",
                  options: ["Amazon", "Yangtze", "Mississippi", "Nile"],
                  correctAnswer: "Nile"),
@@ -140,10 +135,8 @@ let questionSets: [[Question]] = [
         Question(text: "Which African country has the largest population?",
                  options: ["Egypt", "South Africa", "Nigeria", "Ethiopia"],
                  correctAnswer: "Nigeria"),
-    ],
-
-    // Set 5 - Sports
-    [
+    ]),
+    QuestionSet(name: "Sports", questions: [
         Question(text: "How many players are on a basketball team on the court?",
                  options: ["4", "5", "6", "7"],
                  correctAnswer: "5"),
@@ -174,10 +167,8 @@ let questionSets: [[Question]] = [
         Question(text: "How many grand slams are there in tennis?",
                  options: ["2", "3", "4", "5"],
                  correctAnswer: "4"),
-    ],
-
-    // Set 6 - Movies & TV
-    [
+    ]),
+    QuestionSet(name: "Movies & TV", questions: [
         Question(text: "How many Infinity Stones are there in the Marvel universe?",
                  options: ["4", "5", "6", "7"],
                  correctAnswer: "6"),
@@ -208,10 +199,8 @@ let questionSets: [[Question]] = [
         Question(text: "What studio made the Toy Story films?",
                  options: ["DreamWorks", "Disney", "Pixar", "Universal"],
                  correctAnswer: "Pixar"),
-    ],
-
-    // Set 7 - Food & Drink
-    [
+    ]),
+    QuestionSet(name: "Food & Drink", questions: [
         Question(text: "Which country does sushi originally come from?",
                  options: ["China", "Korea", "Thailand", "Japan"],
                  correctAnswer: "Japan"),
@@ -242,10 +231,8 @@ let questionSets: [[Question]] = [
         Question(text: "What country does cheddar cheese originally come from?",
                  options: ["France", "USA", "England", "Netherlands"],
                  correctAnswer: "England"),
-    ],
-
-    // Set 8 - Technology
-    [
+    ]),
+    QuestionSet(name: "Technology", questions: [
         Question(text: "What does CPU stand for?",
                  options: ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Core Processing Unit"],
                  correctAnswer: "Central Processing Unit"),
@@ -276,19 +263,14 @@ let questionSets: [[Question]] = [
         Question(text: "Which company owns Instagram?",
                  options: ["Google", "Twitter", "Meta", "Apple"],
                  correctAnswer: "Meta"),
-    ],
-
-    // Set 9 - Music
-    [
+    ]),
+    QuestionSet(name: "Music", questions: [
         Question(text: "How many strings does a standard guitar have?",
                  options: ["4", "5", "6", "7"],
                  correctAnswer: "6"),
         Question(text: "Which band performed the most at Glastonbury festival?",
                  options: ["The Rolling Stones", "Coldplay", "U2", "David Bowie"],
                  correctAnswer: "Coldplay"),
-        Question(text: "What is the fastest selling album of all time?",
-                 options: ["Thriller", "Back in Black", "Taylor Swift's 1989", "Adele's 25"],
-                 correctAnswer: "Adele's 25"),
         Question(text: "How many keys does a standard piano have?",
                  options: ["76", "82", "88", "92"],
                  correctAnswer: "88"),
@@ -310,10 +292,11 @@ let questionSets: [[Question]] = [
         Question(text: "What note does a standard guitar string A tune to in Hz?",
                  options: ["220 Hz", "440 Hz", "880 Hz", "110 Hz"],
                  correctAnswer: "440 Hz"),
-    ],
-
-    // Set 10 - Space
-    [
+        Question(text: "Which musician has won the most Grammy Awards?",
+                 options: ["Michael Jackson", "Adele", "Beyonce", "Taylor Swift"],
+                 correctAnswer: "Beyonce"),
+    ]),
+    QuestionSet(name: "Space", questions: [
         Question(text: "How long does it take light to travel from the Sun to Earth?",
                  options: ["4 minutes", "8 minutes", "12 minutes", "16 minutes"],
                  correctAnswer: "8 minutes"),
@@ -344,5 +327,5 @@ let questionSets: [[Question]] = [
         Question(text: "What percentage of our solar system's mass does the Sun make up?",
                  options: ["89%", "95%", "97%", "99%"],
                  correctAnswer: "99%"),
-    ],
+    ]),
 ]

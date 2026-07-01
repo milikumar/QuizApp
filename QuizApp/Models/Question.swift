@@ -11,3 +11,7 @@ struct Question {
     let options: [String]
     let correctAnswer: String
 }
+struct QuestionSet {
+    let name: String
+    let questions: [Question]
+}
