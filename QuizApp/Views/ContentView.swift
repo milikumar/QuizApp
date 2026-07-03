@@ -20,6 +20,9 @@ struct ContentView: View {
     @State private var categorySelected = false
     @State private var setCounts: [Int: Int] = [:]
     @State private var isLoading = false
+    @State private var difficultySelected = false
+    @State private var selectedCategory = 0
+    @State private var selectedDifficulty = "medium"
 
     func handleAnswer(_ selectedIndex: Int) {
         selectedAnswer = selectedIndex
@@ -147,7 +150,7 @@ struct ContentView: View {
                              correctAnswer: question.correctAnswer)
                 }
             }
-        } else if categorySelected && !gameStarted {
+        } else if categorySelected && !gameStarted && !difficultySelected {
             ZStack {
                 Color.indigo.ignoresSafeArea()
                 ScrollView {
@@ -161,7 +164,8 @@ struct ContentView: View {
                         // Random button
                         Button(action: {
                             let picked = pickRandomSet()
-                            startSet(index: picked)
+                            selectedCategory = picked
+                            difficultySelected = true
                         }) {
                             Text("🎲 Random")
 
@@ -177,7 +181,8 @@ struct ContentView: View {
                         // Category buttons
                         ForEach(0..<questionSets.count, id: \.self) { i in
                             Button(action: {
-                                startSet(index: i)
+                                selectedCategory = i
+                                difficultySelected = true
                             }) {
                                 HStack {
                                     Text(questionSets[i].name)
@@ -197,6 +202,38 @@ struct ContentView: View {
                             }
                             .padding(.horizontal)
                         }
+                    }
+                }
+            }
+        } else if difficultySelected && !gameStarted {
+            ZStack {
+                Color.indigo.ignoresSafeArea()
+                VStack(spacing: 20) {
+                    Text("Choose Difficulty")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding()
+
+                    Text(questionSets[selectedCategory].name)
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.8))
+
+                    ForEach(["Easy", "Medium", "Hard"], id: \.self) { difficulty in
+                        Button(action: {
+                            selectedDifficulty = difficulty.lowercased()
+                            difficultySelected = false
+                            startSet(index: selectedCategory)
+                        }) {
+                            Text(difficulty)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
                     }
                 }
             }

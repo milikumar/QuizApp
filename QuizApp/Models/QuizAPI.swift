@@ -27,7 +27,7 @@ func categoryID(for name: String) -> Int {
     case "Food & Drink": return 25
     case "Technology": return 18
     case "Music": return 12
-    case "Space": return 17
+    case "Animals": return 27
     default: return 9
     }
 }
