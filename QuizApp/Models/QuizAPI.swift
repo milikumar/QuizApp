@@ -32,9 +32,9 @@ func categoryID(for name: String) -> Int {
     }
 }
 
-func fetchQuestions(for category: String, completion: @escaping ([Question]?) -> Void) {
+func fetchQuestions(for category: String, difficulty: String, completion: @escaping ([Question]?) -> Void) {
     let id = categoryID(for: category)
-    let urlString = "https://opentdb.com/api.php?amount=10&category=\(id)&type=multiple"
+    let urlString = "https://opentdb.com/api.php?amount=10&category=\(id)&type=multiple&difficulty=\(difficulty)"
     
     guard let url = URL(string: urlString) else {
         completion(nil)

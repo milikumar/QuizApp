@@ -18,11 +18,17 @@ struct ContentView: View {
     @State private var usedSetIndexes: [Int] = []
     @State private var currentSetIndex: Int = 0
     @State private var categorySelected = false
-    @State private var setCounts: [Int: Int] = [:]
-    @State private var isLoading = false
+    @State private var setCounts: [Int: Int] = {
+        if let data = UserDefaults.standard.data(forKey: "setCounts"),
+           let decoded = try? JSONDecoder().decode([Int: Int].self, from: data) {
+            return decoded
+        }
+        return [:]
+    }()
     @State private var difficultySelected = false
     @State private var selectedCategory = 0
     @State private var selectedDifficulty = "medium"
+    @State private var isLoading = false
 
     func handleAnswer(_ selectedIndex: Int) {
         selectedAnswer = selectedIndex
@@ -35,6 +41,9 @@ struct ContentView: View {
                 currentIndex += 1
             } else {
                 setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
+                if let encoded = try? JSONEncoder().encode(setCounts) {
+                    UserDefaults.standard.set(encoded, forKey: "setCounts")
+                }
                 quizFinished = true
             }
         }
@@ -73,25 +82,17 @@ struct ContentView: View {
         quizFinished = false
         gameStarted = false
         categorySelected = true
-        let picked = pickRandomSet()
-        shuffledQuestions = questionSets[picked].questions.map { question in
-            Question(text: question.text,
-                     options: question.options.shuffled(),
-                     correctAnswer: question.correctAnswer)
-        }
     }
+
     func startSet(index: Int) {
         isLoading = true
         let categoryName = questionSets[index].name
-        
-        fetchQuestions(for: categoryName) { questions in
+        fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions in
             DispatchQueue.main.async {
                 isLoading = false
                 if let questions = questions {
-                    // API worked, use online questions
                     shuffledQuestions = questions
                 } else {
-                    // No internet, use backup questions
                     shuffledQuestions = questionSets[index].questions.map { question in
                         Question(text: question.text,
                                  options: question.options.shuffled(),
@@ -101,10 +102,25 @@ struct ContentView: View {
                 currentSetIndex = index
                 gameStarted = true
                 categorySelected = false
+                difficultySelected = false
             }
         }
     }
-
+    func categoryColor(for name: String) -> Color {
+        switch name {
+        case "General Knowledge": return Color(red: 0.7, green: 0.6, blue: 0.9)
+        case "Science & Nature": return Color.green.opacity(0.7)
+        case "History": return Color.brown
+        case "Geography": return Color.teal
+        case "Sports": return Color.orange.opacity(0.7)
+        case "Movies & TV": return Color.pink.opacity(0.7)
+        case "Food & Drink": return Color.red.opacity(0.6)
+        case "Technology": return Color.blue
+        case "Music": return Color.purple
+        case "Animals": return Color.mint.opacity(0.7)
+        default: return Color.indigo
+        }
+    }
     var body: some View {
         if isLoading {
             ZStack {
@@ -160,15 +176,13 @@ struct ContentView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding()
-                        
-                        // Random button
+
                         Button(action: {
                             let picked = pickRandomSet()
                             selectedCategory = picked
                             difficultySelected = true
                         }) {
                             Text("🎲 Random")
-
                                 .font(.headline)
                                 .foregroundColor(.indigo)
                                 .frame(maxWidth: .infinity)
@@ -177,8 +191,7 @@ struct ContentView: View {
                                 .cornerRadius(12)
                         }
                         .padding(.horizontal)
-                        
-                        // Category buttons
+
                         ForEach(0..<questionSets.count, id: \.self) { i in
                             Button(action: {
                                 selectedCategory = i
@@ -194,10 +207,10 @@ struct ContentView: View {
                                     }
                                 }
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(categoryColor(for: questionSets[i].name))
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.white.opacity(0.2))
+                                .background(Color.white)
                                 .cornerRadius(12)
                             }
                             .padding(.horizontal)
@@ -208,6 +221,24 @@ struct ContentView: View {
         } else if difficultySelected && !gameStarted {
             ZStack {
                 Color.indigo.ignoresSafeArea()
+
+                // Back button for difficulty
+                VStack {
+                    HStack {
+                        Button(action: {
+                            difficultySelected = false
+                        }) {
+                            Image(systemName: "chevron.left.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.white.opacity(0.75))
+                                .padding()
+                        }
+                        Spacer()
+                    }
+                    Spacer()
+                }
+
+                // Difficulty
                 VStack(spacing: 20) {
                     Text("Choose Difficulty")
                         .font(.largeTitle)
@@ -264,7 +295,7 @@ struct ContentView: View {
             }
         } else {
             ZStack {
-                Color.indigo.ignoresSafeArea()
+                categoryColor(for: questionSets[currentSetIndex].name).ignoresSafeArea()
                 VStack {
                     HStack {
                         Button(action: {
