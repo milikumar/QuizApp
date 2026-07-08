@@ -6,15 +6,18 @@
 //
 
 import Foundation
-struct Question {
+
+struct Question: Sendable {
     let text: String
     let options: [String]
     let correctAnswer: String
 }
-struct QuestionSet {
+
+struct QuestionSet: Sendable {
     let name: String
     let questions: [Question]
 }
+
 extension String {
     var htmlDecoded: String {
         var result = self

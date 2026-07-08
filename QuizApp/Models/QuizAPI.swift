@@ -6,16 +6,18 @@
 //
 
 import Foundation
-struct TriviaResponse: Codable {
+
+struct TriviaResponse: Codable, Sendable {
     let results: [TriviaQuestion]
 }
 
-struct TriviaQuestion: Codable {
+struct TriviaQuestion: Codable, Sendable {
     let question: String
     let correct_answer: String
     let incorrect_answers: [String]
 }
 
+nonisolated
 func categoryID(for name: String) -> Int {
     switch name {
     case "General Knowledge": return 9
@@ -32,6 +34,7 @@ func categoryID(for name: String) -> Int {
     }
 }
 
+nonisolated
 func fetchQuestions(for category: String, difficulty: String, completion: @escaping ([Question]?) -> Void) {
     let id = categoryID(for: category)
     let urlString = "https://opentdb.com/api.php?amount=10&category=\(id)&type=multiple&difficulty=\(difficulty)"
