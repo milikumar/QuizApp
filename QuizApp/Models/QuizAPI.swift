@@ -7,14 +7,14 @@
 
 import Foundation
 
-struct TriviaResponse: Codable, Sendable {
-    let results: [TriviaQuestion]
-}
-
 struct TriviaQuestion: Codable, Sendable {
     let question: String
     let correct_answer: String
     let incorrect_answers: [String]
+}
+
+struct TriviaResponse: Codable, Sendable {
+    let results: [TriviaQuestion]
 }
 
 nonisolated

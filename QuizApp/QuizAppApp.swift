@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import GameKit
 
 @main
 struct QuizAppApp: App {
+    
+    @StateObject private var gcManager = GameCenterManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(gcManager)
         }
     }
 }
