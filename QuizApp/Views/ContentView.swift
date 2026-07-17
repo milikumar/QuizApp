@@ -9,7 +9,8 @@ import SwiftUI
 import GameKit
 
 struct ContentView: View {
-//MARK: - State Variables
+    
+// MARK: - State Variables
     @State private var currentIndex = 0
     @State private var score = 0
     @State private var selectedAnswer: Int? = nil
@@ -31,8 +32,13 @@ struct ContentView: View {
     @State private var selectedDifficulty = "medium"
     @State private var isLoading = false
     @State private var isGameCenterAuthenticated = false
+    @AppStorage("totalPoints") private var totalPoints = 0
+    @AppStorage("totalQuizzes") private var totalQuizzes = 0
+    @AppStorage("currentStreak") private var currentStreak = 0
+    @AppStorage("lastPlayedDate") private var lastPlayedDate = ""
     @EnvironmentObject var gcManager: GameCenterManager
-//MARK: - Handle Answer
+    
+// MARK: - Handle Answer
     func handleAnswer(_ selectedIndex: Int) {
         selectedAnswer = selectedIndex
         if shuffledQuestions[currentIndex].options[selectedIndex] == shuffledQuestions[currentIndex].correctAnswer {
@@ -48,6 +54,9 @@ struct ContentView: View {
                     UserDefaults.standard.set(encoded, forKey: "setCounts")
                 }
                 gcManager.submitScore(score)
+                totalPoints += score
+                totalQuizzes += 1
+                updateStreak()
                 quizFinished = true
             }
         }
@@ -67,7 +76,7 @@ struct ContentView: View {
         return Color.white.opacity(0.1)
     }
     
-//MARK: - Pick Random Set
+// MARK: - Pick Random Set
     func pickRandomSet() -> Int {
         if usedSetIndexes.count == questionSets.count {
             usedSetIndexes = []
@@ -80,7 +89,8 @@ struct ContentView: View {
         }
         return 0
     }
-//MARK: - Restart Quiz
+    
+// MARK: - Restart Quiz
     func restartQuiz() {
         currentIndex = 0
         score = 0
@@ -89,7 +99,8 @@ struct ContentView: View {
         gameStarted = false
         categorySelected = true
     }
-//MARK: - Start Set
+    
+// MARK: - Start Set
     func startSet(index: Int) {
         isLoading = true
         let categoryName = questionSets[index].name
@@ -112,7 +123,8 @@ struct ContentView: View {
             }
         }
     }
-//MARK: - Category Color
+    
+// MARK: - Category Color
     func categoryColor(for name: String) -> Color {
         switch name {
         case "General Knowledge": return Color(red: 0.7, green: 0.6, blue: 0.9)
@@ -128,7 +140,8 @@ struct ContentView: View {
         default: return Color.indigo
         }
     }
-//MARK: - Authenticate Game Center
+    
+// MARK: - Authenticate Game Center
     func authenticateGameCenter() {
         let player = GKLocalPlayer.local
         player.authenticateHandler = { vc, error in
@@ -137,9 +150,27 @@ struct ContentView: View {
             }
         }
     }
-//MARK: - Start of Body
+    
+// MARK: - Streak
+    func updateStreak() {
+        let today = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
+        
+        if lastPlayedDate == today {
+            // Already played today, don't change streak
+            return
+        } else if lastPlayedDate == DateFormatter.localizedString(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!, dateStyle: .short, timeStyle: .none) {
+            // Played yesterday, increase streak
+            currentStreak += 1
+        } else {
+            // Missed a day, reset streak
+            currentStreak = 1
+        }
+        lastPlayedDate = today
+    }
+    
+// MARK: - Start of Body
     var body: some View {
-        //MARK: - Loading Screen
+        // MARK: - Loading Screen
         if isLoading {
             ZStack {
                 Color.indigo.ignoresSafeArea()
@@ -152,54 +183,169 @@ struct ContentView: View {
                         .font(.headline)
                 }
             }
-            //MARK: - Start Screen
-        } else if !gameStarted && !categorySelected {
-            ZStack {
-                Color.indigo.ignoresSafeArea()
-                VStack(spacing: 24) {
-                    Text("🧠")
-                        .font(.system(size: 80))
-                    Text("Cleverr Mind")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    Text("Test your knowledge!")
-                        .font(.title3)
-                        .foregroundColor(.white.opacity(0.8))
-                    Button(action: {
-                        categorySelected = true
-                    })  {
-                        Text("Start Quiz")
-                            .font(.headline)
-                            .foregroundColor(.indigo)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(12)
-                    }
-                    Button(action: {
-                        gcManager.showLeaderboard()
-                    }) {
-                        Text("🏆 Leaderboard")
-                            .font(.headline)
+            
+// MARK: - Start Screen
+           } else if !gameStarted && !categorySelected {
+                ZStack {
+                    Color.indigo.ignoresSafeArea()
+                    
+                    VStack(spacing: 20) {
+                        
+                        // Logo
+                        Image("StartScreenLogo")
+                            .resizable()
+                                .scaledToFit()
+                                .frame(width: 150, height: 150)
+                                .padding(20)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.8), radius: 15, x: 0, y: 5)
+                        
+                        Text("Cleverr Mind")
+                            .font(.system(size: 36, weight: .bold, design: .serif))
                             .foregroundColor(.white)
+                        
+                        // Welcome Card
+                        VStack(spacing: 8) {
+                            Text("Welcome back!")
+                                .font(.headline)
+                                .foregroundColor(.white.opacity(0.8))
+                            if gcManager.isAuthenticated {
+                                Text(gcManager.playerName)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                        
+                        // Stats Card
+                        HStack(spacing: 12) {
+                            VStack(spacing: 4) {
+                                Text("\(totalQuizzes)")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text("Quizzes")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(12)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(16)
+                            
+                            VStack(spacing: 4) {
+                                Text("\(totalPoints)")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text("Points")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(16)
+                            
+                            VStack(spacing: 4) {
+                                Text("\(totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes)/10")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text("Avg Score")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(16)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Daily Streak Card
+                        VStack(spacing: 6) {
+                            HStack(spacing: 8) {
+                                Text("🔥")
+                                    .font(.system(size: 40))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(currentStreak) Day Streak")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                    Text(currentStreak == 0 ? "Play today to start your streak!" : "Keep it going!")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                Spacer()
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(16)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Play Button
+                        Button(action: {
+                            categorySelected = true
+                        }) {
+                            Text("▶ Play")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.indigo)
+                                .frame(width: 200)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(16)
+                        }
+                        
+                        // Leaderboard Button
+                        Button(action: {
+                            gcManager.showLeaderboard()
+                        }) {
+                            Text("🏆 Leaderboard")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(16)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Settings Button
+                        Button(action: {
+                            // Settings coming soon
+                        }) {
+                            Text("⚙️ Settings")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(16)
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 40)
                     }
-                    .padding(.horizontal)
                 }
-            }
-            .onAppear {
-                authenticateGameCenter()
-                shuffledQuestions = questionSets[0].questions.map { question in
-                    Question(text: question.text,
-                             options: question.options.shuffled(),
-                             correctAnswer: question.correctAnswer)
+                .onAppear {
+                    authenticateGameCenter()
+                    shuffledQuestions = questionSets[0].questions.map { question in
+                        Question(text: question.text,
+                                 options: question.options.shuffled(),
+                                 correctAnswer: question.correctAnswer)
+                    }
                 }
-            }
-            //MARK: - Category Screen
+               
+            // MARK: - Category Screen
         } else if categorySelected && !gameStarted && !difficultySelected {
             ZStack {
                 Color.indigo.ignoresSafeArea()
@@ -276,7 +422,8 @@ struct ContentView: View {
                     }
                 }
             }
-            //MARK: - Difficulty Screen
+            
+            // MARK: - Difficulty Screen
     } else if difficultySelected && !gameStarted {
             ZStack {
                 Color.indigo.ignoresSafeArea()
@@ -327,7 +474,8 @@ struct ContentView: View {
                     }
                 }
             }
-            //MARK: - Results Screen
+        
+            // MARK: - Results Screen
         } else if quizFinished {
             ZStack {
                 Color.indigo.ignoresSafeArea()
@@ -353,7 +501,8 @@ struct ContentView: View {
                     .padding(.horizontal)
                 }
             }
-            //MARK: - Quiz Screen
+            
+            // MARK: - Quiz Screen
         } else {
             ZStack {
                 categoryColor(for: questionSets[currentSetIndex].name).ignoresSafeArea()
