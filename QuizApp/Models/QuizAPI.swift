@@ -7,37 +7,44 @@
 
 import Foundation
 
-struct TriviaQuestion: Codable, Sendable {
-    let question: String
-    let correct_answer: String
-    let incorrect_answers: [String]
+struct TriviaAPIQuestion: Codable, Sendable {
+    let question: QuestionText
+    let correctAnswer: String
+    let incorrectAnswers: [String]
+    
+    enum CodingKeys: String, CodingKey {
+        case question
+        case correctAnswer
+        case incorrectAnswers
+    }
 }
 
-struct TriviaResponse: Codable, Sendable {
-    let results: [TriviaQuestion]
+struct QuestionText: Codable, Sendable {
+    let text: String
 }
 
 nonisolated
-func categoryID(for name: String) -> Int {
+func categoryName(for name: String) -> String {
     switch name {
-    case "General Knowledge": return 9
-    case "Science & Nature": return 17
-    case "History": return 23
-    case "Geography": return 22
-    case "Sports": return 21
-    case "Movies & TV": return 11
-    case "Food & Drink": return 25
-    case "Technology": return 18
-    case "Music": return 12
-    case "Animals": return 27
-    default: return 9
+    case "General Knowledge": return "general_knowledge"
+    case "Science & Nature": return "science"
+    case "History": return "history"
+    case "Geography": return "geography"
+    case "Sports": return "sport_and_leisure"
+    case "Movies & TV": return "film_and_tv"
+    case "Food & Drink": return "food_and_drink"
+    case "Technology": return "technology"
+    case "Music": return "music"
+    case "Animals": return "nature"
+    default: return "general_knowledge"
     }
 }
 
 nonisolated
 func fetchQuestions(for category: String, difficulty: String, completion: @escaping ([Question]?) -> Void) {
-    let id = categoryID(for: category)
-    let urlString = "https://opentdb.com/api.php?amount=10&category=\(id)&type=multiple&difficulty=\(difficulty)"
+    let cat = categoryName(for: category)
+    let diff = difficulty == "shuffle" ? "" : "&difficulties=\(difficulty)"
+    let urlString = "https://the-trivia-api.com/v2/questions?limit=10&categories=\(cat)\(diff)"
     
     guard let url = URL(string: urlString) else {
         completion(nil)
@@ -51,15 +58,15 @@ func fetchQuestions(for category: String, difficulty: String, completion: @escap
         }
         
         do {
-            let decoded = try JSONDecoder().decode(TriviaResponse.self, from: data)
-            let questions = decoded.results.map { q in
-                var options = q.incorrect_answers
-                options.append(q.correct_answer)
+            let decoded = try JSONDecoder().decode([TriviaAPIQuestion].self, from: data)
+            let questions = decoded.map { q in
+                var options = q.incorrectAnswers
+                options.append(q.correctAnswer)
                 options.shuffle()
                 return Question(
-                    text: q.question.htmlDecoded,
+                    text: q.question.text,
                     options: options.map { $0.htmlDecoded },
-                    correctAnswer: q.correct_answer.htmlDecoded
+                    correctAnswer: q.correctAnswer.htmlDecoded
                 )
             }
             completion(questions)

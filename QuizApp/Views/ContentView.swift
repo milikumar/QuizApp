@@ -32,6 +32,11 @@ struct ContentView: View {
     @State private var selectedDifficulty = "medium"
     @State private var isLoading = false
     @State private var isGameCenterAuthenticated = false
+    @State private var showLogo = false
+    @State private var showStats = false
+    @State private var showPlayButton = false
+    @State private var showTitle = false
+    @State private var showSettings = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -204,24 +209,19 @@ struct ContentView: View {
                         Text("Cleverr Mind")
                             .font(.system(size: 36, weight: .bold, design: .serif))
                             .foregroundColor(.white)
+                            .opacity(showLogo ? 1 : 0)
                         
                         // Welcome Card
-                        VStack(spacing: 8) {
+                        VStack(spacing: 12) {
                             Text("Welcome back!")
-                                .font(.headline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .font(.custom("Chalkboard SE", size: 22))
+                                .foregroundColor(.white.opacity(0.9))
                             if gcManager.isAuthenticated {
                                 Text(gcManager.playerName)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
+                                    .font(.custom("Chalkboard SE", size: 22))
                                     .foregroundColor(.white)
                             }
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(16)
-                        .padding(.horizontal)
                         
                         // Stats Card
                         HStack(spacing: 12) {
@@ -267,6 +267,8 @@ struct ContentView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(16)
                         }
+                        .offset(x: showStats ? 0 : -300)
+                        .opacity(showStats ? 1 : 0)
                         .padding(.horizontal)
                         
                         // Daily Streak Card
@@ -290,6 +292,8 @@ struct ContentView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(16)
                         }
+                        .offset(x: showStats ? 0 : 300)
+                        .opacity(showStats ? 1 : 0)
                         .padding(.horizontal)
                         
                         // Play Button
@@ -305,6 +309,8 @@ struct ContentView: View {
                                 .background(Color.white)
                                 .cornerRadius(16)
                         }
+                        .scaleEffect(showPlayButton ? 1 : 0.01)
+                        .opacity(showPlayButton ? 1 : 0)
                         
                         // Leaderboard Button
                         Button(action: {
@@ -322,7 +328,7 @@ struct ContentView: View {
                         
                         // Settings Button
                         Button(action: {
-                            // Settings coming soon
+                            showSettings = true
                         }) {
                             Text("⚙️ Settings")
                                 .font(.headline)
@@ -343,6 +349,22 @@ struct ContentView: View {
                                  options: question.options.shuffled(),
                                  correctAnswer: question.correctAnswer)
                     }
+                    // Animations
+                    withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
+                        showLogo = true
+                    }
+                        withAnimation(.easeIn(duration: 0.6).delay(0.3)) {
+                            showStats = true
+                        }
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.5).delay(1.2)) {
+                            showPlayButton = true
+                        }
+                    withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
+                        showTitle = true
+                    }
+                }
+                .sheet(isPresented: $showSettings) {
+                    SettingsView(isShowing: $showSettings)
                 }
                
             // MARK: - Category Screen
@@ -456,7 +478,7 @@ struct ContentView: View {
                         .font(.title3)
                         .foregroundColor(.white.opacity(0.8))
 
-                    ForEach(["Easy", "Medium", "Hard"], id: \.self) { difficulty in
+                    ForEach(["Shuffle", "Medium", "Hard"], id: \.self) { difficulty in
                         Button(action: {
                             selectedDifficulty = difficulty.lowercased()
                             difficultySelected = false
@@ -559,4 +581,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(GameCenterManager.shared)
 }
