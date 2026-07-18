@@ -38,6 +38,8 @@ struct ContentView: View {
     @State private var showTitle = false
     @State private var showSettings = false
     @State private var showTheme = false
+    @State private var hasAnimated = false
+    @State private var showNumbers = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -45,6 +47,7 @@ struct ContentView: View {
     @AppStorage("appColor") private var appColorName = "indigo"
     @AppStorage("textColor") private var textColorName = "white"
     @EnvironmentObject var gcManager: GameCenterManager
+    @Environment(\.scenePhase) var scenePhase
     
 // MARK: - Handle Answer
     func handleAnswer(_ selectedIndex: Int) {
@@ -219,6 +222,18 @@ struct ContentView: View {
         return textColorName == "black" ? Color.black : Color.white
     }
     
+// MARK: - Trigger Animations
+    func triggerAnimations() {
+        showTitle = false
+        showStats = false
+        showNumbers = false
+        showPlayButton = false
+        withAnimation(.easeIn(duration: 1.2).delay(0.3)) { showTitle = true }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.3).delay(0.6)) { showStats = true }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.2).delay(0.9)) { showNumbers = true }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.3).delay(1.2)) { showPlayButton = true }
+    }
+    
 // MARK: - Start of Body
     var body: some View {
         // MARK: - Loading Screen
@@ -276,6 +291,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(appTextColor())
+                                    .scaleEffect(showNumbers ? 1 : 0.1)
                                 Text("Quizzes")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -290,6 +306,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(appTextColor())
+                                    .scaleEffect(showNumbers ? 1 : 0.1)
                                 Text("Points")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -304,6 +321,7 @@ struct ContentView: View {
                                     .font(.title)
                                     .fontWeight(.bold)
                                     .foregroundColor(appTextColor())
+                                    .scaleEffect(showNumbers ? 1 : 0.1)
                                 Text("Avg Score")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -389,12 +407,17 @@ struct ContentView: View {
                     }
                 }
                 .onAppear {
-                    authenticateGameCenter()
-                    shuffledQuestions = questionSets[0].questions.map { question in
+                    if !hasAnimated {
+                           hasAnimated = true
+                           triggerAnimations()
+                       }
+                       authenticateGameCenter()
+                       shuffledQuestions = questionSets[0].questions.map { question in
                         Question(text: question.text,
                                  options: question.options.shuffled(),
                                  correctAnswer: question.correctAnswer)
                     }
+                       
                     // Animations
                     withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
                         showLogo = true
@@ -407,6 +430,15 @@ struct ContentView: View {
                         }
                     withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
                         showTitle = true
+                    }
+                }
+                .onChange(of: scenePhase) {
+                    if scenePhase == .background {
+                        hasAnimated = false
+                    }
+                    if scenePhase == .active && !hasAnimated {
+                        hasAnimated = true
+                        triggerAnimations()
                     }
                 }
                 .sheet(isPresented: $showSettings) {
