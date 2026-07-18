@@ -37,10 +37,13 @@ struct ContentView: View {
     @State private var showPlayButton = false
     @State private var showTitle = false
     @State private var showSettings = false
+    @State private var showTheme = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
     @AppStorage("lastPlayedDate") private var lastPlayedDate = ""
+    @AppStorage("appColor") private var appColorName = "indigo"
+    @AppStorage("textColor") private var textColorName = "white"
     @EnvironmentObject var gcManager: GameCenterManager
     
 // MARK: - Handle Answer
@@ -173,6 +176,49 @@ struct ContentView: View {
         lastPlayedDate = today
     }
     
+// MARK: - App Color
+    func appColor() -> Color {
+        switch appColorName {
+        case "rose": return Color(red: 0.95, green: 0.5, blue: 0.5)
+        case "red": return Color(red: 0.85, green: 0.1, blue: 0.1)
+        case "crimson": return Color(red: 0.6, green: 0.0, blue: 0.1)
+        case "peach": return Color(red: 0.98, green: 0.7, blue: 0.5)
+        case "orange": return Color(red: 0.9, green: 0.45, blue: 0.1)
+        case "sunset": return Color(red: 0.7, green: 0.25, blue: 0.05)
+        case "yellow": return Color(red: 0.98, green: 0.9, blue: 0.3)
+        case "gold": return Color(red: 0.85, green: 0.65, blue: 0.13)
+        case "amber": return Color(red: 0.7, green: 0.45, blue: 0.05)
+        case "mint": return Color(red: 0.6, green: 0.95, blue: 0.7)
+        case "green": return Color(red: 0.1, green: 0.7, blue: 0.2)
+        case "forest": return Color(red: 0.05, green: 0.35, blue: 0.1)
+        case "cyan": return Color(red: 0.4, green: 0.9, blue: 0.95)
+        case "teal": return Color(red: 0.1, green: 0.6, blue: 0.65)
+        case "darkTeal": return Color(red: 0.05, green: 0.35, blue: 0.4)
+        case "sky": return Color(red: 0.5, green: 0.75, blue: 0.98)
+        case "blue": return Color(red: 0.1, green: 0.4, blue: 0.85)
+        case "navy": return Color(red: 0.05, green: 0.1, blue: 0.5)
+        case "lavender": return Color(red: 0.7, green: 0.6, blue: 0.95)
+        case "indigo": return Color(red: 0.3, green: 0.2, blue: 0.8)
+        case "violet": return Color(red: 0.4, green: 0.1, blue: 0.6)
+        case "lightPink": return Color(red: 0.98, green: 0.7, blue: 0.85)
+        case "pink": return Color(red: 0.95, green: 0.35, blue: 0.6)
+        case "hotPink": return Color(red: 0.8, green: 0.1, blue: 0.45)
+        case "tan": return Color(red: 0.82, green: 0.68, blue: 0.52)
+        case "brown": return Color(red: 0.55, green: 0.35, blue: 0.15)
+        case "darkBrown": return Color(red: 0.3, green: 0.15, blue: 0.05)
+        case "silver": return Color(red: 0.75, green: 0.75, blue: 0.75)
+        case "slate": return Color(red: 0.4, green: 0.4, blue: 0.45)
+        case "black": return Color(red: 0.1, green: 0.1, blue: 0.15)
+        default: return Color(red: 0.3, green: 0.2, blue: 0.8)
+        }
+    }
+    
+// MARK: - App Text Color
+    func appTextColor() -> Color {
+        if appColorName == "black" { return .white }
+        return textColorName == "black" ? Color.black : Color.white
+    }
+    
 // MARK: - Start of Body
     var body: some View {
         // MARK: - Loading Screen
@@ -192,7 +238,7 @@ struct ContentView: View {
 // MARK: - Start Screen
            } else if !gameStarted && !categorySelected {
                 ZStack {
-                    Color.indigo.ignoresSafeArea()
+                    appColor().ignoresSafeArea()
                     
                     VStack(spacing: 20) {
                         
@@ -208,7 +254,7 @@ struct ContentView: View {
                         
                         Text("Cleverr Mind")
                             .font(.system(size: 36, weight: .bold, design: .serif))
-                            .foregroundColor(.white)
+                            .foregroundColor(appTextColor())
                             .opacity(showLogo ? 1 : 0)
                         
                         // Welcome Card
@@ -219,7 +265,7 @@ struct ContentView: View {
                             if gcManager.isAuthenticated {
                                 Text(gcManager.playerName)
                                     .font(.custom("Chalkboard SE", size: 22))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appTextColor())
                             }
                         }
                         
@@ -229,7 +275,7 @@ struct ContentView: View {
                                 Text("\(totalQuizzes)")
                                     .font(.title)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appTextColor())
                                 Text("Quizzes")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -243,7 +289,7 @@ struct ContentView: View {
                                 Text("\(totalPoints)")
                                     .font(.title)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appTextColor())
                                 Text("Points")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -257,7 +303,7 @@ struct ContentView: View {
                                 Text("\(totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes)/10")
                                     .font(.title)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appTextColor())
                                 Text("Avg Score")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
@@ -280,7 +326,7 @@ struct ContentView: View {
                                     Text("\(currentStreak) Day Streak")
                                         .font(.title2)
                                         .fontWeight(.bold)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(appTextColor())
                                     Text(currentStreak == 0 ? "Play today to start your streak!" : "Keep it going!")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.8))
@@ -303,7 +349,7 @@ struct ContentView: View {
                             Text("▶ Play")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(.indigo)
+                                .foregroundColor(appColor())
                                 .frame(width: 200)
                                 .padding()
                                 .background(Color.white)
@@ -318,7 +364,7 @@ struct ContentView: View {
                         }) {
                             Text("🏆 Leaderboard")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(appTextColor())
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.white.opacity(0.2))
@@ -332,7 +378,7 @@ struct ContentView: View {
                         }) {
                             Text("⚙️ Settings")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(appTextColor())
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.white.opacity(0.2))
@@ -364,7 +410,7 @@ struct ContentView: View {
                     }
                 }
                 .sheet(isPresented: $showSettings) {
-                    SettingsView(isShowing: $showSettings)
+                    SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
                 }
                
             // MARK: - Category Screen
