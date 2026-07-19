@@ -40,6 +40,7 @@ struct ContentView: View {
     @State private var showTheme = false
     @State private var hasAnimated = false
     @State private var showNumbers = false
+    @State private var showFloatingDice = true
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -139,16 +140,29 @@ struct ContentView: View {
     func categoryColor(for name: String) -> Color {
         switch name {
         case "General Knowledge": return Color(red: 0.7, green: 0.6, blue: 0.9)
-        case "Science & Nature": return Color.green.opacity(0.7)
-        case "History": return Color.brown
-        case "Geography": return Color.teal
-        case "Sports": return Color.orange.opacity(0.7)
-        case "Movies & TV": return Color.pink.opacity(0.7)
-        case "Food & Drink": return Color.red.opacity(0.6)
-        case "Technology": return Color.blue
-        case "Music": return Color.purple
-        case "Animals": return Color.mint.opacity(0.7)
-        default: return Color.indigo
+        case "Science & Nature": return Color(red: 0.1, green: 0.7, blue: 0.2)
+        case "History": return Color(red: 0.55, green: 0.35, blue: 0.15)
+        case "Geography": return Color(red: 0.1, green: 0.6, blue: 0.65)
+        case "Sports": return Color(red: 0.9, green: 0.45, blue: 0.1)
+        case "Movies & TV": return Color(red: 0.95, green: 0.35, blue: 0.6)
+        case "Food & Drink": return Color(red: 0.85, green: 0.1, blue: 0.1)
+        case "Technology": return Color(red: 0.1, green: 0.4, blue: 0.85)
+        case "Music": return Color(red: 0.4, green: 0.1, blue: 0.6)
+        case "Animals": return Color(red: 0.6, green: 0.95, blue: 0.7)
+        case "Video Games": return Color(red: 0.0, green: 0.0, blue: 0.5)
+        case "Mythology": return Color(red: 0.7, green: 0.45, blue: 0.05)
+        case "Board Games": return Color(red: 0.4, green: 0.9, blue: 0.95)
+        case "Art": return Color(red: 0.98, green: 0.7, blue: 0.5)
+        case "Vehicles": return Color(red: 0.27, green: 0.35, blue: 0.43)
+        case "Mathematics": return Color(red: 0.1, green: 0.4, blue: 0.85)
+        case "Celebrities": return Color(red: 0.98, green: 0.9, blue: 0.3)
+        case "Comics": return Color(red: 0.85, green: 0.1, blue: 0.1)
+        case "Anime & Manga": return Color(red: 0.95, green: 0.35, blue: 0.6)
+        case "Cartoons": return Color(red: 0.9, green: 0.45, blue: 0.1)
+        case "Books": return Color(red: 0.55, green: 0.35, blue: 0.15)
+        case "Gadgets": return Color(red: 0.27, green: 0.35, blue: 0.43)
+        case "World Cultures": return Color(red: 0.4, green: 0.1, blue: 0.6)
+        default: return .indigo
         }
     }
     
@@ -201,7 +215,7 @@ struct ContentView: View {
         case "blue": return Color(red: 0.1, green: 0.4, blue: 0.85)
         case "navy": return Color(red: 0.05, green: 0.1, blue: 0.5)
         case "lavender": return Color(red: 0.7, green: 0.6, blue: 0.95)
-        case "indigo": return Color(red: 0.3, green: 0.2, blue: 0.8)
+        case "indigo": return .indigo
         case "violet": return Color(red: 0.4, green: 0.1, blue: 0.6)
         case "lightPink": return Color(red: 0.98, green: 0.7, blue: 0.85)
         case "pink": return Color(red: 0.95, green: 0.35, blue: 0.6)
@@ -450,7 +464,8 @@ struct ContentView: View {
             ZStack {
                 Color.indigo.ignoresSafeArea()
                 ScrollView {
-                    VStack {
+                    VStack(spacing: 16) {
+                        // Header buttons
                         HStack {
                             Button(action: {
                                 categorySelected = false
@@ -464,38 +479,52 @@ struct ContentView: View {
                             }
                             Spacer()
                             Button(action: {
-                                    gcManager.showLeaderboard()
-                                }) {
-                                    Image(systemName: "trophy.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white.opacity(0.75))
-                                        .padding()
-                                }
+                                gcManager.showLeaderboard()
+                            }) {
+                                Image(systemName: "trophy.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white.opacity(0.75))
+                                    .padding(8)
+                            }
+                            Button(action: {
+                                showSettings = true
+                            }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white.opacity(0.75))
+                                    .padding(8)
+                            }
                         }
-                        Spacer()
-                    }
-                    VStack(spacing: 16) {
+
                         Text("Choose a Category")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding()
 
-                        Button(action: {
-                            let picked = pickRandomSet()
-                            selectedCategory = picked
-                            difficultySelected = true
-                        }) {
-                            Text("🎲 Random")
-                                .font(.headline)
-                                .foregroundColor(.indigo)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(12)
+                        GeometryReader { geo in
+                            Button(action: {
+                                let picked = pickRandomSet()
+                                selectedCategory = picked
+                                difficultySelected = true
+                            }) {
+                                Text("🎲 Surprise Me!")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(12)
+                                    .glittering()
+                            }
+                            .onChange(of: geo.frame(in: .global).minY) {
+                                showFloatingDice = geo.frame(in: .global).minY < 0
+                            }
                         }
+                        .frame(height: 50)
                         .padding(.horizontal)
-
+                        
                         ForEach(0..<questionSets.count, id: \.self) { i in
                             Button(action: {
                                 selectedCategory = i
@@ -511,13 +540,36 @@ struct ContentView: View {
                                     }
                                 }
                                 .font(.headline)
-                                .foregroundColor(categoryColor(for: questionSets[i].name))
+                                .foregroundColor(appColor())
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(Color.white)
                                 .cornerRadius(12)
                             }
                             .padding(.horizontal)
+                        }
+                    }
+                }
+
+                // Floating dice button
+                if showFloatingDice {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                let picked = pickRandomSet()
+                                selectedCategory = picked
+                                difficultySelected = true
+                            }) {
+                                Text("🎲")
+                                    .font(.title)
+                                    .padding()
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                            }
+                            .padding()
                         }
                     }
                 }
@@ -605,7 +657,7 @@ struct ContentView: View {
             // MARK: - Quiz Screen
         } else {
             ZStack {
-                categoryColor(for: questionSets[currentSetIndex].name).ignoresSafeArea()
+                appColor().ignoresSafeArea()
                 VStack {
                     HStack {
                         Button(action: {

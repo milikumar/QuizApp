@@ -39,7 +39,7 @@ struct ThemePickerView: View {
         ("navy", "Navy", Color(red: 0.05, green: 0.1, blue: 0.5)),
         // Purples/Indigos
         ("lavender", "Lavender", Color(red: 0.7, green: 0.6, blue: 0.95)),
-        ("indigo", "Indigo", Color(red: 0.3, green: 0.2, blue: 0.8)),
+        ("indigo", "Indigo (Default)", .indigo),
         ("violet", "Violet", Color(red: 0.4, green: 0.1, blue: 0.6)),
         // Pinks
         ("lightPink", "Light Pink", Color(red: 0.98, green: 0.7, blue: 0.85)),
