@@ -253,7 +253,7 @@ struct ContentView: View {
         // MARK: - Loading Screen
         if isLoading {
             ZStack {
-                Color.indigo.ignoresSafeArea()
+                appColor().ignoresSafeArea()
                 VStack(spacing: 16) {
                     ProgressView()
                         .tint(.white)
@@ -462,7 +462,7 @@ struct ContentView: View {
             // MARK: - Category Screen
         } else if categorySelected && !gameStarted && !difficultySelected {
             ZStack {
-                Color.indigo.ignoresSafeArea()
+                appColor().ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
                         // Header buttons
@@ -525,8 +525,10 @@ struct ContentView: View {
                         .frame(height: 50)
                         .padding(.horizontal)
                         
-                        ForEach(0..<questionSets.count, id: \.self) { i in
-                            Button(action: {
+                        let sorted = questionSets.indices.sorted {
+                            (setCounts[$0] ?? 0) > (setCounts[$1] ?? 0)
+                        }
+                        ForEach(sorted, id: \.self) { i in                            Button(action: {
                                 selectedCategory = i
                                 difficultySelected = true
                             }) {
@@ -578,7 +580,7 @@ struct ContentView: View {
             // MARK: - Difficulty Screen
     } else if difficultySelected && !gameStarted {
             ZStack {
-                Color.indigo.ignoresSafeArea()
+                appColor().ignoresSafeArea()
 
                 // Back button for difficulty
                 VStack {
@@ -630,7 +632,7 @@ struct ContentView: View {
             // MARK: - Results Screen
         } else if quizFinished {
             ZStack {
-                Color.indigo.ignoresSafeArea()
+                appColor().ignoresSafeArea()
                 VStack(spacing: 24) {
                     Text("🏆")
                         .font(.system(size: 80))
