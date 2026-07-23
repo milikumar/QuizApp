@@ -233,6 +233,12 @@ extension String {
         for (key, value) in replacements {
             result = result.replacingOccurrences(of: key, with: value)
         }
+        // Remove any remaining HTML tags
+        let tagPattern = "<[^>]+>"
+        if let regex = try? NSRegularExpression(pattern: tagPattern) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
+        }
         return result
     }
 }

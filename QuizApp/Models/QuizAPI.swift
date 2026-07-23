@@ -19,7 +19,6 @@ func categoryID(for name: String) -> Int {
     case "Board Games": return 16
     case "Science & Nature": return 17
     case "Technology": return 18
-    case "Mathematics": return 19
     case "Mythology": return 20
     case "Sports": return 21
     case "Geography": return 22
@@ -32,7 +31,6 @@ func categoryID(for name: String) -> Int {
     case "Gadgets": return 30
     case "Anime & Manga": return 31
     case "Cartoons": return 32
-    case "Food & Drink": return 25
     default: return 9
     }
 }
