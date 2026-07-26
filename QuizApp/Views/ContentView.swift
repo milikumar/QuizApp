@@ -48,6 +48,7 @@ struct ContentView: View {
     @State private var showNextButton = false
     @State private var skipsUsed = 0
     @State private var skipsAllowed = 2
+    @State private var showConfetti = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -64,9 +65,16 @@ struct ContentView: View {
         selectedAnswer = selectedIndex
         if shuffledQuestions[currentIndex].options[selectedIndex] == shuffledQuestions[currentIndex].correctAnswer {
             score += 1
+            SoundManager.shared.playCorrect()
+            showConfetti = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                showConfetti = false
+            }
             if score >= 8 {
                 stopTimer()
             }
+        } else {
+            SoundManager.shared.playWrong()
         }
         if currentIndex + 1 == questionSets[currentSetIndex].questions.count {
             stopTimer()
@@ -1055,6 +1063,11 @@ struct ContentView: View {
                                 }
                             }
                         )
+                        // Confetti
+                        if showConfetti {
+                            ConfettiEffect()
+                                .ignoresSafeArea()
+                        }
                     }
                 }
             }
