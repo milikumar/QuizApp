@@ -49,6 +49,7 @@ struct ContentView: View {
     @State private var skipsUsed = 0
     @State private var skipsAllowed = 2
     @State private var showConfetti = false
+    @State private var isOffline = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -57,6 +58,7 @@ struct ContentView: View {
     @AppStorage("textColor") private var textColorName = "white"
     @AppStorage("perfectScores") private var perfectScores = 0
     @AppStorage("fastestPerfectTime") private var fastestPerfectTime = 0
+    @AppStorage("categoryPoints") private var categoryPointsData = ""
     @EnvironmentObject var gcManager: GameCenterManager
     @Environment(\.scenePhase) var scenePhase
     
@@ -129,7 +131,9 @@ struct ContentView: View {
                     isLoading = false
                     if let questions = questions {
                         shuffledQuestions = questions
+                        isOffline = false
                     } else {
+                        isOffline = true
                         shuffledQuestions = questionSets[index].questions.map { question in
                             Question(text: question.text,
                                      options: question.options.shuffled(),
@@ -288,10 +292,17 @@ struct ContentView: View {
         
         // MARK: - Finish Quiz
         func finishQuiz() {
-            setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
-            if let encoded = try? JSONEncoder().encode(setCounts) {
-                UserDefaults.standard.set(encoded, forKey: "setCounts")
-            }
+        setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
+        if let encoded = try? JSONEncoder().encode(setCounts) {
+            UserDefaults.standard.set(encoded, forKey: "setCounts")
+        }
+        
+        // Only track stats when online
+        if !isOffline {
+            var catPoints = getCategoryPoints()
+            let catName = questionSets[currentSetIndex].name
+            catPoints[catName] = (catPoints[catName] ?? 0) + score
+            saveCategoryPoints(catPoints)
             gcManager.submitScore(score)
             totalPoints += score
             totalQuizzes += 1
@@ -302,8 +313,29 @@ struct ContentView: View {
                     fastestPerfectTime = timeElapsed
                 }
             }
-            quizFinished = true
         }
+        
+        quizFinished = true
+    }
+    
+    // MARK: -  Get Category Points
+    func getCategoryPoints() -> [String: Int] {
+        guard !categoryPointsData.isEmpty else { return [:] }
+        let pairs = categoryPointsData.split(separator: "|")
+        var dict: [String: Int] = [:]
+        for pair in pairs {
+            let parts = pair.split(separator: ":")
+            if parts.count == 2, let points = Int(parts[1]) {
+                dict[String(parts[0])] = points
+            }
+        }
+        return dict
+    }
+
+    // MARK: - Save Category Points
+    func saveCategoryPoints(_ dict: [String: Int]) {
+        categoryPointsData = dict.map { "\($0.key):\($0.value)" }.joined(separator: "|")
+    }
         
         // MARK: - Start of Body
         var body: some View {
@@ -357,7 +389,8 @@ struct ContentView: View {
                             }
                             
                             // Stats Card
-                            HStack(spacing: 12) {
+                            HStack(spacing: 8) {
+                                // Quizzes card
                                 VStack(spacing: 4) {
                                     Text("\(totalQuizzes)")
                                         .font(.title)
@@ -373,6 +406,7 @@ struct ContentView: View {
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(16)
                                 
+                                // Points card
                                 VStack(spacing: 4) {
                                     Text("\(totalPoints)")
                                         .font(.title)
@@ -388,13 +422,30 @@ struct ContentView: View {
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(16)
                                 
+                                // Avg Score card
                                 VStack(spacing: 4) {
-                                    Text("\(totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes)/10")
+                                    Text("\(totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes)")
                                         .font(.title)
                                         .fontWeight(.bold)
                                         .foregroundColor(appTextColor())
                                         .scaleEffect(showNumbers ? 1 : 0.1)
-                                    Text("Avg Score")
+                                    Text("Avg/8")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(16)
+                                
+                                // Elite Scores card
+                                VStack(spacing: 4) {
+                                    Text("\(perfectScores)")
+                                        .font(.title)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(appTextColor())
+                                        .scaleEffect(showNumbers ? 1 : 0.1)
+                                    Text("Elite")
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.8))
                                 }
@@ -405,10 +456,11 @@ struct ContentView: View {
                             }
                             .offset(x: showStats ? 0 : -300)
                             .opacity(showStats ? 1 : 0)
-                            .padding(.horizontal)
+                            .padding(.horizontal, 8)
                             
-                            // Daily Streak Card
-                            VStack(spacing: 6) {
+                            // Swipeable Stats Card
+                            TabView {
+                                // Card 1 - Streak
                                 HStack(spacing: 8) {
                                     Text("🔥")
                                         .font(.system(size: 40))
@@ -427,7 +479,60 @@ struct ContentView: View {
                                 .frame(maxWidth: .infinity)
                                 .background(Color.white.opacity(0.15))
                                 .cornerRadius(16)
+                                
+                                // Card 2 - Fastest Perfect Time
+                                HStack(spacing: 8) {
+                                    Text("⚡️")
+                                        .font(.system(size: 40))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(fastestPerfectTime == 0 ? "No perfect yet!" : formatTime(fastestPerfectTime))
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(appTextColor())
+                                        Text("Fastest Perfect Time")
+                                            .font(.caption)
+                                            .foregroundColor(.white.opacity(0.8))
+                                    }
+                                    Spacer()
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(16)
+                                
+                                // Card 3 - Best Category
+                                HStack(spacing: 8) {
+                                    Text("🏆")
+                                        .font(.system(size: 40))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        let catPoints = getCategoryPoints()
+                                        if let best = catPoints.max(by: { $0.value < $1.value }) {
+                                            Text(best.key)
+                                                .font(.title2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(appTextColor())
+                                            Text("\(best.value) points earned")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.8))
+                                        } else {
+                                            Text("No data yet!")
+                                                .font(.title2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(appTextColor())
+                                            Text("Best Category")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.8))
+                                        }
+                                    }
+                                    Spacer()
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(16)
                             }
+                            .tabViewStyle(.page(indexDisplayMode: .always))
+                            .frame(height: 110)
                             .offset(x: showStats ? 0 : 300)
                             .opacity(showStats ? 1 : 0)
                             .padding(.horizontal)
@@ -903,6 +1008,18 @@ struct ContentView: View {
                                     .padding()
                             }
                             
+                            // Offline Banner
+                            if isOffline {
+                                Text("📵 Offline mode — stats won't be tracked")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(8)
+                                    .background(Color.black.opacity(0.3))
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                            }
+                            
                             // Category and difficulty
                             HStack {
                                 Text(questionSets[currentSetIndex].name)
@@ -917,8 +1034,10 @@ struct ContentView: View {
                             
                             Spacer()
                             
-                            // Question card
+                            // Question and answers
                             VStack(spacing: 20) {
+                                
+                                // Question card
                                 Text(shuffledQuestions[currentIndex].text)
                                     .font(.title3)
                                     .fontWeight(.bold)
@@ -947,9 +1066,9 @@ struct ContentView: View {
                                     .disabled(selectedAnswer != nil)
                                     .padding(.horizontal)
                                 }
+                                
+                                // Next and Skip buttons
                                 VStack(spacing: 12) {
-                                    
-                                    // Next button
                                     if showNextButton {
                                         Button(action: {
                                             showNextButton = false
@@ -971,7 +1090,6 @@ struct ContentView: View {
                                         .transition(.opacity)
                                     }
                                     
-                                    // Skip button
                                     if selectedAnswer == nil && skipsUsed < skipsAllowed {
                                         Button(action: {
                                             skipQuestion()
@@ -987,25 +1105,33 @@ struct ContentView: View {
                                     }
                                 }
                                 .padding(.horizontal)
-                                .padding(.bottom, 150)
+                                .padding(.top, 4)
                                 
-                                // Progress bar
-                                GeometryReader { geo in
-                                    ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.white.opacity(0.2))
-                                            .frame(height: 8)
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.white)
-                                            .frame(width: geo.size.width * CGFloat(currentIndex + 1) / CGFloat(questionSets[currentSetIndex].questions.count), height: 8)
-                                            .animation(.easeInOut, value: currentIndex)
-                                    }
-                                }
-                                .frame(height: 8)
-                                .padding(.horizontal)
-                                .padding(.bottom)
+                                // Hint text
+                                Text("Only need 8/10 for 100%")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.4))
                             }
-                        }
+                            
+                            Spacer()  // ← pushes content up from bottom
+                            
+                            // Progress bar
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white.opacity(0.2))
+                                        .frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white)
+                                        .frame(width: geo.size.width * CGFloat(currentIndex + 1) / CGFloat(questionSets[currentSetIndex].questions.count), height: 8)
+                                        .animation(.easeInOut, value: currentIndex)
+                                }
+                            }
+                            .frame(height: 8)
+                            .padding(.horizontal)
+                            .padding(.bottom)
+                            
+                        } // ← end of outer VStack
                         .overlay(
                             Group {
                                 if showQuitAlert {
@@ -1063,13 +1189,15 @@ struct ContentView: View {
                                 }
                             }
                         )
+                        
                         // Confetti
                         if showConfetti {
                             ConfettiEffect()
                                 .ignoresSafeArea()
                         }
-                    }
-                }
+                        
+                    } // ← end of quiz screen ZStack
+                } // ← end of quiz screen else
             }
             
             .sheet(isPresented: $showSettings) {
