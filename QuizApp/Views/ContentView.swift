@@ -284,11 +284,17 @@ struct ContentView: View {
         }
         
         // MARK: - Skip Question
-        func skipQuestion() {
-            skipsUsed += 1
-            selectedAnswer = -1  // -1 means skipped, shows correct answer in green
-            showNextButton = true
+    func skipQuestion() {
+        skipsUsed += 1
+        selectedAnswer = -1
+        showNextButton = true
+        
+        // Pause timer for 2 seconds as a reward for skipping
+        timerPaused = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            timerPaused = false
         }
+    }
         
         // MARK: - Finish Quiz
         func finishQuiz() {
@@ -1108,7 +1114,7 @@ struct ContentView: View {
                                 .padding(.top, 4)
                                 
                                 // Hint text
-                                Text("Only need 8/10 for 100%")
+                                Text("Only need 8/10 for 100% • Skipping saves 2s ⏱")
                                     .font(.caption)
                                     .foregroundColor(.white.opacity(0.4))
                             }
