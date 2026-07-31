@@ -12,6 +12,14 @@ struct SettingsView: View {
     @Binding var appColorName: String
     @Binding var textColorName: String
     @State private var showTheme = false
+    @State private var showHelp = false
+    @EnvironmentObject var gcManager: GameCenterManager
+    
+    // Setting Text Color
+    func settingsTextColor() -> Color {
+        if appColorName == "black" { return .white }
+        return textColorName == "black" ? Color.black : Color.white
+    }
     
     var selectedColor: Color {
         // reuse same color lookup
@@ -31,14 +39,14 @@ struct SettingsView: View {
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(settingsTextColor().opacity(0.75))
                             .padding()
                     }
                     Spacer()
                     Text("Settings")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(settingsTextColor())
                     Spacer()
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
@@ -57,7 +65,7 @@ struct SettingsView: View {
                             Image(systemName: "chevron.right")
                         }
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(settingsTextColor())
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.white.opacity(0.2))
@@ -65,6 +73,7 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal)
                     
+                    // Badges
                     Button(action: {
                         // Badges coming soon
                     }) {
@@ -74,7 +83,25 @@ struct SettingsView: View {
                             Image(systemName: "chevron.right")
                         }
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(settingsTextColor())
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Manual
+                    Button(action: {
+                        showHelp = true
+                    }) {
+                        HStack {
+                            Text("📖 Help & Manual")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.headline)
+                        .foregroundColor(settingsTextColor())
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.white.opacity(0.2))
@@ -86,7 +113,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("✏️ Text Color")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(settingsTextColor())
                             .padding(.horizontal)
                         
                         HStack(spacing: 12) {
@@ -136,6 +163,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showTheme) {
             ThemePickerView(appColorName: $appColorName)
+        }
+        .sheet(isPresented: $showHelp) {
+            HelpView()
+                .environmentObject(gcManager)
         }
     }
 }

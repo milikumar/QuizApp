@@ -205,47 +205,14 @@ struct ContentView: View {
         }
         
         // MARK: - App Color
-        func appColor() -> Color {
-            switch appColorName {
-            case "rose": return Color(red: 0.95, green: 0.5, blue: 0.5)
-            case "red": return Color(red: 0.85, green: 0.1, blue: 0.1)
-            case "crimson": return Color(red: 0.6, green: 0.0, blue: 0.1)
-            case "peach": return Color(red: 0.98, green: 0.7, blue: 0.5)
-            case "orange": return Color(red: 0.9, green: 0.45, blue: 0.1)
-            case "sunset": return Color(red: 0.7, green: 0.25, blue: 0.05)
-            case "yellow": return Color(red: 0.98, green: 0.9, blue: 0.3)
-            case "gold": return Color(red: 0.85, green: 0.65, blue: 0.13)
-            case "amber": return Color(red: 0.7, green: 0.45, blue: 0.05)
-            case "mint": return Color(red: 0.6, green: 0.95, blue: 0.7)
-            case "green": return Color(red: 0.1, green: 0.7, blue: 0.2)
-            case "forest": return Color(red: 0.05, green: 0.35, blue: 0.1)
-            case "cyan": return Color(red: 0.4, green: 0.9, blue: 0.95)
-            case "teal": return Color(red: 0.1, green: 0.6, blue: 0.65)
-            case "darkTeal": return Color(red: 0.05, green: 0.35, blue: 0.4)
-            case "sky": return Color(red: 0.5, green: 0.75, blue: 0.98)
-            case "blue": return Color(red: 0.1, green: 0.4, blue: 0.85)
-            case "navy": return Color(red: 0.05, green: 0.1, blue: 0.5)
-            case "lavender": return Color(red: 0.7, green: 0.6, blue: 0.95)
-            case "indigo": return .indigo
-            case "violet": return Color(red: 0.4, green: 0.1, blue: 0.6)
-            case "lightPink": return Color(red: 0.98, green: 0.7, blue: 0.85)
-            case "pink": return Color(red: 0.95, green: 0.35, blue: 0.6)
-            case "hotPink": return Color(red: 0.8, green: 0.1, blue: 0.45)
-            case "tan": return Color(red: 0.82, green: 0.68, blue: 0.52)
-            case "brown": return Color(red: 0.55, green: 0.35, blue: 0.15)
-            case "darkBrown": return Color(red: 0.3, green: 0.15, blue: 0.05)
-            case "silver": return Color(red: 0.75, green: 0.75, blue: 0.75)
-            case "slate": return Color(red: 0.4, green: 0.4, blue: 0.45)
-            case "black": return Color(red: 0.1, green: 0.1, blue: 0.15)
-            default: return Color(red: 0.3, green: 0.2, blue: 0.8)
-            }
-        }
+    func appColor() -> Color {
+        return getAppColor(appColorName)
+    }
         
         // MARK: - App Text Color
-        func appTextColor() -> Color {
-            if appColorName == "black" { return .white }
-            return textColorName == "black" ? Color.black : Color.white
-        }
+    func appTextColor() -> Color {
+        return getAppTextColor(appColorName, textColorName)
+    }
         
         // MARK: - Trigger Animations
         func triggerAnimations() {
@@ -355,7 +322,7 @@ struct ContentView: View {
                                 .tint(.white)
                                 .scaleEffect(1.5)
                             Text("Loading questions...")
-                                .foregroundColor(.white)
+                                .foregroundColor(appTextColor())
                                 .font(.headline)
                         }
                     }
@@ -651,7 +618,7 @@ struct ContentView: View {
                                     }) {
                                         Image(systemName: "house.fill")
                                             .font(.title2)
-                                            .foregroundColor(.white.opacity(0.75))
+                                            .foregroundColor(appTextColor().opacity(0.75))
                                             .padding()
                                     }
                                     Spacer()
@@ -660,7 +627,7 @@ struct ContentView: View {
                                     }) {
                                         Image(systemName: "trophy.fill")
                                             .font(.title2)
-                                            .foregroundColor(.white.opacity(0.75))
+                                            .foregroundColor(appTextColor().opacity(0.75))
                                             .padding(8)
                                     }
                                     Button(action: {
@@ -668,7 +635,7 @@ struct ContentView: View {
                                     }) {
                                         Image(systemName: "gearshape.fill")
                                             .font(.title2)
-                                            .foregroundColor(.white.opacity(0.75))
+                                            .foregroundColor(appTextColor().opacity(0.75))
                                             .padding(8)
                                     }
                                 }
@@ -676,7 +643,7 @@ struct ContentView: View {
                                 Text("Choose a Category")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(appTextColor())
                                     .padding()
                                 
                                 GeometryReader { geo in
@@ -688,7 +655,7 @@ struct ContentView: View {
                                         Text("🎲 Surprise Me!")
                                             .font(.headline)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(appTextColor())
                                             .frame(maxWidth: .infinity)
                                             .padding()
                                             .background(Color.white.opacity(0.2))
@@ -780,12 +747,12 @@ struct ContentView: View {
                             Text("Choose Difficulty")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(appTextColor())
                                 .padding()
                             
                             Text(questionSets[selectedCategory].name)
                                 .font(.title3)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(appTextColor().opacity(0.8))
                             
                             ForEach(["Shuffle", "Medium", "Hard"], id: \.self) { difficulty in
                                 Button(action: {
@@ -795,7 +762,7 @@ struct ContentView: View {
                                 }) {
                                     Text(difficulty)
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(appTextColor())
                                         .frame(maxWidth: .infinity)
                                         .padding()
                                         .background(Color.white.opacity(0.2))
@@ -852,7 +819,7 @@ struct ContentView: View {
                                         score >= 3 ? "Not bad! 💪" : "Keep trying! 📚")
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(appTextColor())
                                 
                                 // Category and difficulty
                                 HStack(spacing: 6) {
@@ -874,7 +841,7 @@ struct ContentView: View {
                                         HStack {
                                             Text("🎯 Skips used: \(skipsUsed)")
                                                 .font(.subheadline)
-                                                .foregroundColor(.white)
+                                                .foregroundColor(appTextColor())
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding()
@@ -890,7 +857,7 @@ struct ContentView: View {
                                     HStack {
                                         Text("⚡️ New fastest perfect time!")
                                             .font(.subheadline)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(appTextColor())
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding()
@@ -905,7 +872,7 @@ struct ContentView: View {
                                         Text(formatTime(timeElapsed))
                                             .font(.title2)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(appTextColor())
                                         Text("Time")
                                             .font(.caption)
                                             .foregroundColor(.white.opacity(0.8))
@@ -919,7 +886,7 @@ struct ContentView: View {
                                         Text("\(Int((Double(score) / 8.0) * 100))%")
                                             .font(.title2)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(appTextColor())
                                         Text("Accuracy")
                                             .font(.caption)
                                             .foregroundColor(.white.opacity(0.8))
@@ -933,7 +900,7 @@ struct ContentView: View {
                                         Text("\(perfectScores)")
                                             .font(.title2)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(appTextColor())
                                         Text("Perfects")
                                             .font(.caption)
                                             .foregroundColor(.white.opacity(0.8))
@@ -972,7 +939,7 @@ struct ContentView: View {
                                 Button(action: { restartQuiz() }) {
                                     Text("🗂 New Category")
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(appTextColor())
                                         .frame(maxWidth: .infinity)
                                         .padding()
                                         .background(Color.white.opacity(0.2))
@@ -1006,11 +973,11 @@ struct ContentView: View {
                                 // Timer
                                 Text("⏱ \(formatTime(timeElapsed))")
                                     .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.75))
+                                    .foregroundColor(appTextColor().opacity(0.75))
                                 Spacer()
                                 Text("Q\(currentIndex + 1)/\(questionSets[currentSetIndex].questions.count)")
                                     .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.75))
+                                    .foregroundColor(appTextColor().opacity(0.75))
                                     .padding()
                             }
                             
@@ -1030,12 +997,12 @@ struct ContentView: View {
                             HStack {
                                 Text(questionSets[currentSetIndex].name)
                                     .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(appTextColor().opacity(0.7))
                                 Text("•")
                                     .foregroundColor(.white.opacity(0.5))
                                 Text(selectedDifficulty.capitalized)
                                     .font(.caption)
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(appTextColor().opacity(0.7))
                             }
                             
                             Spacer()
@@ -1063,8 +1030,7 @@ struct ContentView: View {
                                     }) {
                                         Text(shuffledQuestions[currentIndex].options[i])
                                             .font(.headline)
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
+                                            .foregroundColor(appTextColor())                                            .frame(maxWidth: .infinity)
                                             .padding()
                                             .background(buttonColor(for: i))
                                             .cornerRadius(12)
