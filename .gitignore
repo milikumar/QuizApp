@@ -3,7 +3,7 @@ build/
 DerivedData/
 
 # User-specific Xcode settings (causes git conflicts)
-*.xcuserdatad
+*.xcuserdatad/
 *.xcuserstate
 xcuserdata/
 
