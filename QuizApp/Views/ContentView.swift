@@ -5,51 +5,47 @@
 //  Created by Mili Kumar on 6/22/26.
 //
 
-import SwiftUI
 import GameKit
+import SwiftUI
 
 struct ContentView: View {
-    
-    // MARK: - State Variables
+
+    // MARK: - Quiz State
     @State private var currentIndex = 0
     @State private var score = 0
-    @State private var selectedAnswer: Int? = nil
-    @State private var quizFinished = false
-    @State private var gameStarted = false
+    @State private var selectedAnswer: Int?
     @State private var shuffledQuestions: [Question] = []
-    @State private var usedSetIndexes: [Int] = []
-    @State private var currentSetIndex: Int = 0
-    @State private var categorySelected = false
-    @State private var setCounts: [Int: Int] = {
-        if let data = UserDefaults.standard.data(forKey: "setCounts"),
-           let decoded = try? JSONDecoder().decode([Int: Int].self, from: data) {
-            return decoded
-        }
-        return [:]
-    }()
-    @State private var difficultySelected = false
+    @State private var currentSetIndex = 0
     @State private var selectedCategory = 0
     @State private var selectedDifficulty = "medium"
+    @State private var skipsUsed = 0
+    @State private var timeElapsed = 0
+    @State private var timer: Timer?
+
+    // MARK: - Navigation State
+    @State private var quizFinished = false
+    @State private var gameStarted = false
+    @State private var categorySelected = false
+    @State private var difficultySelected = false
     @State private var isLoading = false
-    @State private var isGameCenterAuthenticated = false
+    @State private var showSettings = false
+    @State private var showQuitAlert = false
+
+    // MARK: - Presentation State
+    @State private var usedSetIndexes: [Int] = []
+    @State private var setCounts: [Int: Int] = Self.loadSetCounts()
     @State private var showLogo = false
     @State private var showStats = false
     @State private var showPlayButton = false
-    @State private var showTitle = false
-    @State private var showSettings = false
-    @State private var showTheme = false
-    @State private var hasAnimated = false
     @State private var showNumbers = false
+    @State private var hasAnimated = false
     @State private var showFloatingDice = true
-    @State private var timeElapsed = 0
-    @State private var timer: Timer? = nil
-    @State private var showQuitAlert = false
-    @State private var timerPaused = false
     @State private var showNextButton = false
-    @State private var skipsUsed = 0
-    @State private var skipsAllowed = 2
     @State private var showConfetti = false
+    @State private var timerPaused = false
     @State private var isOffline = false
+
+    // MARK: - Persistent Player Data
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -59,223 +55,218 @@ struct ContentView: View {
     @AppStorage("perfectScores") private var perfectScores = 0
     @AppStorage("fastestPerfectTime") private var fastestPerfectTime = 0
     @AppStorage("categoryPoints") private var categoryPointsData = ""
-    @EnvironmentObject var gcManager: GameCenterManager
-    @Environment(\.scenePhase) var scenePhase
-    
-    // MARK: - Handle Answer
-    func handleAnswer(_ selectedIndex: Int) {
+
+    @EnvironmentObject private var gcManager: GameCenterManager
+    @Environment(\.scenePhase) private var scenePhase
+
+    // MARK: - Screen Routing
+    private enum Screen {
+        case loading, start, categories, difficulty, results, quiz
+    }
+
+    private var activeScreen: Screen {
+        if isLoading { return .loading }
+        if quizFinished { return .results }
+        if gameStarted { return .quiz }
+        if difficultySelected { return .difficulty }
+        if categorySelected { return .categories }
+        return .start
+    }
+
+    var body: some View {
+        Group {
+            switch activeScreen {
+            case .loading:
+                LoadingView(appColor: appColor(), textColor: appTextColor())
+            case .start:
+                startScreen
+            case .categories:
+                categoryScreen
+            case .difficulty:
+                difficultyScreen
+            case .results:
+                resultsScreen
+            case .quiz:
+                quizScreen
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            handleScenePhaseChange(phase)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
+        }
+    }
+
+    // MARK: - Screen Composition
+    private var startScreen: some View {
+        StartScreenView(
+            appColor: appColor(),
+            textColor: appTextColor(),
+            totalQuizzes: totalQuizzes,
+            totalPoints: totalPoints,
+            perfectScores: perfectScores,
+            currentStreak: currentStreak,
+            fastestPerfectTime: fastestPerfectTime,
+            bestCategory: bestCategory,
+            playerName: gcManager.isAuthenticated ? gcManager.playerName : nil,
+            showLogo: showLogo,
+            showStats: showStats,
+            showNumbers: showNumbers,
+            showPlayButton: showPlayButton,
+            onPlay: { categorySelected = true },
+            onLeaderboard: gcManager.showLeaderboard,
+            onSettings: { showSettings = true }
+        )
+        .onAppear(perform: prepareStartScreen)
+    }
+
+    private var categoryScreen: some View {
+        CategorySelectionView(
+            appColor: appColor(),
+            textColor: appTextColor(),
+            categories: questionSets.map(\.name),
+            playCounts: setCounts,
+            showFloatingDice: showFloatingDice,
+            onHome: returnToStart,
+            onLeaderboard: gcManager.showLeaderboard,
+            onSettings: { showSettings = true },
+            onSelectCategory: selectCategory,
+            onSurpriseMe: chooseRandomCategory,
+            onScrollPositionChange: { showFloatingDice = $0 }
+        )
+    }
+
+    private var difficultyScreen: some View {
+        DifficultySelectionView(
+            appColor: appColor(),
+            textColor: appTextColor(),
+            categoryName: questionSets[selectedCategory].name,
+            onBack: { difficultySelected = false },
+            onSelectDifficulty: { difficulty in
+                selectedDifficulty = difficulty
+                difficultySelected = false
+                startSet(index: selectedCategory)
+            }
+        )
+    }
+
+    private var resultsScreen: some View {
+        ResultsView(
+            appColor: appColor(),
+            textColor: appTextColor(),
+            score: score,
+            questionCount: questionCount,
+            categoryName: questionSets[currentSetIndex].name,
+            difficulty: selectedDifficulty,
+            skipsUsed: skipsUsed,
+            elapsedTime: timeElapsed,
+            perfectScores: perfectScores,
+            showNewFastestTime: score == questionCount && fastestPerfectTime == timeElapsed,
+            onPlayAgain: playAgain,
+            onNewCategory: restartQuiz
+        )
+    }
+
+    private var quizScreen: some View {
+        QuizRoundView(
+            appColor: appColor(),
+            textColor: appTextColor(),
+            question: shuffledQuestions[currentIndex],
+            questionIndex: currentIndex,
+            questionCount: questionCount,
+            categoryName: questionSets[currentSetIndex].name,
+            difficulty: selectedDifficulty,
+            selectedAnswer: selectedAnswer,
+            showNextButton: showNextButton,
+            skipsUsed: skipsUsed,
+            skipsAllowed: 2,
+            elapsedTime: timeElapsed,
+            isOffline: isOffline,
+            showQuitAlert: showQuitAlert,
+            buttonColor: buttonColor,
+            onAnswer: handleAnswer,
+            onNext: advanceQuiz,
+            onSkip: skipQuestion,
+            onQuit: { timerPaused = true; showQuitAlert = true },
+            onStay: { timerPaused = false; showQuitAlert = false },
+            onLeave: leaveQuiz
+        )
+        .overlay {
+            if showConfetti {
+                ConfettiEffect().ignoresSafeArea()
+            }
+        }
+    }
+
+    // MARK: - Quiz Actions
+    private func handleAnswer(_ selectedIndex: Int) {
         selectedAnswer = selectedIndex
         if shuffledQuestions[currentIndex].options[selectedIndex] == shuffledQuestions[currentIndex].correctAnswer {
             score += 1
             SoundManager.shared.playCorrect()
             showConfetti = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showConfetti = false
-            }
-            if score >= 8 {
-                stopTimer()
-            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { showConfetti = false }
+            if score >= 8 { stopTimer() }
         } else {
             SoundManager.shared.playWrong()
         }
-        if currentIndex + 1 == questionSets[currentSetIndex].questions.count {
-            stopTimer()
-        }
+        if currentIndex + 1 == questionCount { stopTimer() }
         showNextButton = true
     }
-        
-        // MARK: - Button Color
-        func buttonColor(for index: Int) -> Color {
-            guard let selected = selectedAnswer else {
-                return Color.white.opacity(0.2)
-            }
-            if shuffledQuestions[currentIndex].options[index] == shuffledQuestions[currentIndex].correctAnswer {
-                return Color.green.opacity(0.85)  // always show correct in green
-            }
-            if index == selected {
-                return Color.red.opacity(0.75)    // wrong choice turns red
-            }
-            return Color.white.opacity(0.1)
+
+    private func advanceQuiz() {
+        showNextButton = false
+        selectedAnswer = nil
+        if currentIndex + 1 < questionCount {
+            currentIndex += 1
+        } else {
+            finishQuiz()
         }
-        
-        // MARK: - Pick Random Set
-        func pickRandomSet() -> Int {
-            if usedSetIndexes.count == questionSets.count {
-                usedSetIndexes = []
-            }
-            let available = (0..<questionSets.count).filter { !usedSetIndexes.contains($0) }
-            if let picked = available.randomElement() {
-                currentSetIndex = picked
-                usedSetIndexes.append(picked)
-                return picked
-            }
-            return 0
-        }
-        
-        // MARK: - Restart Quiz
-        func restartQuiz() {
-            currentIndex = 0
-            score = 0
-            selectedAnswer = nil
-            quizFinished = false
-            gameStarted = false
-            categorySelected = true
-        }
-        
-        // MARK: - Start Set
-        func startSet(index: Int) {
-            isLoading = true
-            let categoryName = questionSets[index].name
-            fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions in
-                DispatchQueue.main.async {
-                    isLoading = false
-                    if let questions = questions {
-                        shuffledQuestions = questions
-                        isOffline = false
-                    } else {
-                        isOffline = true
-                        shuffledQuestions = questionSets[index].questions.map { question in
-                            Question(text: question.text,
-                                     options: question.options.shuffled(),
-                                     correctAnswer: question.correctAnswer)
-                        }
-                    }
-                    currentSetIndex = index
-                    startTimer()
-                    skipsUsed = 0
-                    gameStarted = true
-                    categorySelected = false
-                    difficultySelected = false
-                }
-            }
-        }
-        
-        // MARK: - Category Color
-        func categoryColor(for name: String) -> Color {
-            switch name {
-            case "General Knowledge": return Color(red: 0.7, green: 0.6, blue: 0.9)
-            case "Science & Nature": return Color(red: 0.1, green: 0.7, blue: 0.2)
-            case "History": return Color(red: 0.55, green: 0.35, blue: 0.15)
-            case "Geography": return Color(red: 0.1, green: 0.6, blue: 0.65)
-            case "Sports": return Color(red: 0.9, green: 0.45, blue: 0.1)
-            case "Movies & TV": return Color(red: 0.95, green: 0.35, blue: 0.6)
-            case "Technology": return Color(red: 0.1, green: 0.4, blue: 0.85)
-            case "Music": return Color(red: 0.4, green: 0.1, blue: 0.6)
-            case "Animals": return Color(red: 0.6, green: 0.95, blue: 0.7)
-            case "Video Games": return Color(red: 0.0, green: 0.0, blue: 0.5)
-            case "Mythology": return Color(red: 0.7, green: 0.45, blue: 0.05)
-            case "Board Games": return Color(red: 0.4, green: 0.9, blue: 0.95)
-            case "Art": return Color(red: 0.98, green: 0.7, blue: 0.5)
-            case "Vehicles": return Color(red: 0.27, green: 0.35, blue: 0.43)
-            case "Celebrities": return Color(red: 0.98, green: 0.9, blue: 0.3)
-            case "Comics": return Color(red: 0.85, green: 0.1, blue: 0.1)
-            case "Anime & Manga": return Color(red: 0.95, green: 0.35, blue: 0.6)
-            case "Cartoons": return Color(red: 0.9, green: 0.45, blue: 0.1)
-            case "Books": return Color(red: 0.55, green: 0.35, blue: 0.15)
-            case "Gadgets": return Color(red: 0.27, green: 0.35, blue: 0.43)
-            default: return .indigo
-            }
-        }
-        
-        // MARK: - Authenticate Game Center
-        func authenticateGameCenter() {
-            let player = GKLocalPlayer.local
-            player.authenticateHandler = { vc, error in
-                if player.isAuthenticated {
-                    isGameCenterAuthenticated = true
-                }
-            }
-        }
-        
-        // MARK: - Streak
-        func updateStreak() {
-            let today = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
-            
-            if lastPlayedDate == today {
-                // Already played today, don't change streak
-                return
-            } else if lastPlayedDate == DateFormatter.localizedString(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!, dateStyle: .short, timeStyle: .none) {
-                // Played yesterday, increase streak
-                currentStreak += 1
-            } else {
-                // Missed a day, reset streak
-                currentStreak = 1
-            }
-            lastPlayedDate = today
-        }
-        
-        // MARK: - App Color
-    func appColor() -> Color {
-        return getAppColor(appColorName)
     }
-        
-        // MARK: - App Text Color
-    func appTextColor() -> Color {
-        return getAppTextColor(appColorName, textColorName)
-    }
-        
-        // MARK: - Trigger Animations
-        func triggerAnimations() {
-            showTitle = false
-            showStats = false
-            showNumbers = false
-            showPlayButton = false
-            withAnimation(.easeIn(duration: 1.2).delay(0.3)) { showTitle = true }
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.3).delay(0.6)) { showStats = true }
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.2).delay(0.9)) { showNumbers = true }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.3).delay(1.2)) { showPlayButton = true }
-        }
-        
-        // MARK: - Start Timer
-        func startTimer() {
-            timeElapsed = 0
-            timer?.invalidate()
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                if !timerPaused {
-                    timeElapsed += 1
-                }
-            }
-        }
-        
-        // MARK: - Stop Timer
-        func stopTimer() {
-            timer?.invalidate()
-            timer = nil
-        }
-        
-        // MARK: - Format Time
-        func formatTime(_ seconds: Int) -> String {
-            let mins = seconds / 60
-            let secs = seconds % 60
-            return String(format: "%d:%02d", mins, secs)
-        }
-        
-        // MARK: - Skip Question
-    func skipQuestion() {
+
+    private func skipQuestion() {
         skipsUsed += 1
         selectedAnswer = -1
         showNextButton = true
-        
-        // Pause timer for 2 seconds as a reward for skipping
         timerPaused = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            timerPaused = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { timerPaused = false }
+    }
+
+    private func startSet(index: Int) {
+        isLoading = true
+        let categoryName = questionSets[index].name
+        fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions in
+            DispatchQueue.main.async {
+                isLoading = false
+                if let questions {
+                    shuffledQuestions = questions
+                    isOffline = false
+                } else {
+                    isOffline = true
+                    shuffledQuestions = questionSets[index].questions.map {
+                        Question(text: $0.text, options: $0.options.shuffled(), correctAnswer: $0.correctAnswer)
+                    }
+                }
+                currentSetIndex = index
+                skipsUsed = 0
+                startTimer()
+                gameStarted = true
+                categorySelected = false
+                difficultySelected = false
+            }
         }
     }
-        
-        // MARK: - Finish Quiz
-        func finishQuiz() {
+
+    private func finishQuiz() {
         setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
-        if let encoded = try? JSONEncoder().encode(setCounts) {
-            UserDefaults.standard.set(encoded, forKey: "setCounts")
-        }
-        
-        // Only track stats when online
+        saveSetCounts(setCounts)
+
         if !isOffline {
-            var catPoints = getCategoryPoints()
-            let catName = questionSets[currentSetIndex].name
-            catPoints[catName] = (catPoints[catName] ?? 0) + score
-            saveCategoryPoints(catPoints)
+            var points = categoryPoints
+            let categoryName = questionSets[currentSetIndex].name
+            points[categoryName] = (points[categoryName] ?? 0) + score
+            saveCategoryPoints(points)
             gcManager.submitScore(score)
             totalPoints += score
             totalQuizzes += 1
@@ -287,898 +278,160 @@ struct ContentView: View {
                 }
             }
         }
-        
         quizFinished = true
     }
-    
-    // MARK: -  Get Category Points
-    func getCategoryPoints() -> [String: Int] {
+
+    private func playAgain() {
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        showNextButton = false
+        quizFinished = false
+        startSet(index: currentSetIndex)
+    }
+
+    private func restartQuiz() {
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        quizFinished = false
+        gameStarted = false
+        categorySelected = true
+    }
+
+    private func leaveQuiz() {
+        showQuitAlert = false
+        timerPaused = false
+        gameStarted = false
+        categorySelected = true
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        stopTimer()
+    }
+
+    // MARK: - Category Selection
+    private func selectCategory(_ index: Int) {
+        selectedCategory = index
+        difficultySelected = true
+    }
+
+    private func chooseRandomCategory() {
+        if usedSetIndexes.count == questionSets.count { usedSetIndexes = [] }
+        let available = questionSets.indices.filter { !usedSetIndexes.contains($0) }
+        guard let index = available.randomElement() else { return }
+        usedSetIndexes.append(index)
+        selectCategory(index)
+    }
+
+    private func returnToStart() {
+        categorySelected = false
+        gameStarted = false
+        difficultySelected = false
+    }
+
+    // MARK: - Timer and Lifecycle
+    private func startTimer() {
+        timeElapsed = 0
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if !timerPaused { timeElapsed += 1 }
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func prepareStartScreen() {
+        if !hasAnimated {
+            hasAnimated = true
+            triggerAnimations()
+        }
+        authenticateGameCenter()
+        if shuffledQuestions.isEmpty {
+            shuffledQuestions = questionSets[0].questions.map {
+                Question(text: $0.text, options: $0.options.shuffled(), correctAnswer: $0.correctAnswer)
+            }
+        }
+        withAnimation(.easeIn(duration: 1.2).delay(0.3)) { showLogo = true }
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        if phase == .background { hasAnimated = false }
+        if phase == .active && !hasAnimated {
+            hasAnimated = true
+            triggerAnimations()
+        }
+        if phase == .background && gameStarted { leaveQuiz() }
+    }
+
+    private func triggerAnimations() {
+        showStats = false
+        showNumbers = false
+        showPlayButton = false
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.3).delay(0.6)) { showStats = true }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.2).delay(0.9)) { showNumbers = true }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.3).delay(1.2)) { showPlayButton = true }
+    }
+
+    // MARK: - Presentation Helpers
+    private var questionCount: Int { questionSets[currentSetIndex].questions.count }
+    private var categoryPoints: [String: Int] { getCategoryPoints() }
+    private var bestCategory: (name: String, points: Int)? {
+        categoryPoints.max(by: { $0.value < $1.value }).map { ($0.key, $0.value) }
+    }
+
+    private func buttonColor(for index: Int) -> Color {
+        guard let selectedAnswer else { return Color.white.opacity(0.2) }
+        if shuffledQuestions[currentIndex].options[index] == shuffledQuestions[currentIndex].correctAnswer {
+            return .green.opacity(0.85)
+        }
+        return index == selectedAnswer ? .red.opacity(0.75) : .white.opacity(0.1)
+    }
+
+    private func appColor() -> Color { getAppColor(appColorName) }
+    private func appTextColor() -> Color { getAppTextColor(appColorName, textColorName) }
+    private func authenticateGameCenter() {
+        GKLocalPlayer.local.authenticateHandler = { _, _ in }
+    }
+
+    // MARK: - Local Persistence
+    private static func loadSetCounts() -> [Int: Int] {
+        guard let data = UserDefaults.standard.data(forKey: "setCounts"),
+              let counts = try? JSONDecoder().decode([Int: Int].self, from: data) else { return [:] }
+        return counts
+    }
+
+    private func saveSetCounts(_ counts: [Int: Int]) {
+        guard let data = try? JSONEncoder().encode(counts) else { return }
+        UserDefaults.standard.set(data, forKey: "setCounts")
+    }
+
+    private func getCategoryPoints() -> [String: Int] {
         guard !categoryPointsData.isEmpty else { return [:] }
-        let pairs = categoryPointsData.split(separator: "|")
-        var dict: [String: Int] = [:]
-        for pair in pairs {
+        return categoryPointsData.split(separator: "|").reduce(into: [:]) { result, pair in
             let parts = pair.split(separator: ":")
-            if parts.count == 2, let points = Int(parts[1]) {
-                dict[String(parts[0])] = points
-            }
-        }
-        return dict
-    }
-
-    // MARK: - Save Category Points
-    func saveCategoryPoints(_ dict: [String: Int]) {
-        categoryPointsData = dict.map { "\($0.key):\($0.value)" }.joined(separator: "|")
-    }
-        
-        // MARK: - Start of Body
-        var body: some View {
-            // MARK: - Loading Screen
-            Group{
-                if isLoading {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .tint(.white)
-                                .scaleEffect(1.5)
-                            Text("Loading questions...")
-                                .foregroundColor(appTextColor())
-                                .font(.headline)
-                        }
-                    }
-                    
-                    // MARK: - Start Screen
-                } else if !gameStarted && !categorySelected {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        
-                        VStack(spacing: 20) {
-                            
-                            // Logo
-                            Image("StartScreenLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 150, height: 150)
-                                .padding(20)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.8), radius: 15, x: 0, y: 5)
-                            
-                            Text("Cleverr Mind")
-                                .font(.system(size: 36, weight: .bold, design: .serif))
-                                .foregroundColor(appTextColor())
-                                .opacity(showLogo ? 1 : 0)
-                            
-                            // Welcome Card
-                            VStack(spacing: 12) {
-                                Text("Welcome back!")
-                                    .font(.custom("Chalkboard SE", size: 22))
-                                    .foregroundColor(.white.opacity(0.9))
-                                if gcManager.isAuthenticated {
-                                    Text(gcManager.playerName)
-                                        .font(.custom("Chalkboard SE", size: 22))
-                                        .foregroundColor(appTextColor())
-                                }
-                            }
-                            
-                            // Stats Card
-                            HStack(spacing: 8) {
-                                // Quizzes card
-                                VStack(spacing: 4) {
-                                    Text("\(totalQuizzes)")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(appTextColor())
-                                        .scaleEffect(showNumbers ? 1 : 0.1)
-                                    Text("Quizzes")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                                
-                                // Points card
-                                VStack(spacing: 4) {
-                                    Text("\(totalPoints)")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(appTextColor())
-                                        .scaleEffect(showNumbers ? 1 : 0.1)
-                                    Text("Points")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                                
-                                // Avg Score card
-                                VStack(spacing: 4) {
-                                    Text("\(totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes)")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(appTextColor())
-                                        .scaleEffect(showNumbers ? 1 : 0.1)
-                                    Text("Avg/8")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                                
-                                // Elite Scores card
-                                VStack(spacing: 4) {
-                                    Text("\(perfectScores)")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(appTextColor())
-                                        .scaleEffect(showNumbers ? 1 : 0.1)
-                                    Text("Elite")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                            }
-                            .offset(x: showStats ? 0 : -300)
-                            .opacity(showStats ? 1 : 0)
-                            .padding(.horizontal, 8)
-                            
-                            // Swipeable Stats Card
-                            TabView {
-                                // Card 1 - Streak
-                                HStack(spacing: 8) {
-                                    Text("🔥")
-                                        .font(.system(size: 40))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("\(currentStreak) Day Streak")
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                        Text(currentStreak == 0 ? "Play today to start your streak!" : "Keep it going!")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    Spacer()
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                                
-                                // Card 2 - Fastest Perfect Time
-                                HStack(spacing: 8) {
-                                    Text("⚡️")
-                                        .font(.system(size: 40))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(fastestPerfectTime == 0 ? "No perfect yet!" : formatTime(fastestPerfectTime))
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                        Text("Fastest Perfect Time")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    Spacer()
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                                
-                                // Card 3 - Best Category
-                                HStack(spacing: 8) {
-                                    Text("🏆")
-                                        .font(.system(size: 40))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        let catPoints = getCategoryPoints()
-                                        if let best = catPoints.max(by: { $0.value < $1.value }) {
-                                            Text(best.key)
-                                                .font(.title2)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(appTextColor())
-                                            Text("\(best.value) points earned")
-                                                .font(.caption)
-                                                .foregroundColor(.white.opacity(0.8))
-                                        } else {
-                                            Text("No data yet!")
-                                                .font(.title2)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(appTextColor())
-                                            Text("Best Category")
-                                                .font(.caption)
-                                                .foregroundColor(.white.opacity(0.8))
-                                        }
-                                    }
-                                    Spacer()
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(16)
-                            }
-                            .tabViewStyle(.page(indexDisplayMode: .always))
-                            .frame(height: 110)
-                            .offset(x: showStats ? 0 : 300)
-                            .opacity(showStats ? 1 : 0)
-                            .padding(.horizontal)
-                            
-                            // Play Button
-                            Button(action: {
-                                categorySelected = true
-                            }) {
-                                Text("▶ Play")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(appColor())
-                                    .frame(width: 200)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(16)
-                            }
-                            .scaleEffect(showPlayButton ? 1 : 0.01)
-                            .opacity(showPlayButton ? 1 : 0)
-                            
-                            // Leaderboard Button
-                            Button(action: {
-                                gcManager.showLeaderboard()
-                            }) {
-                                Text("🏆 Leaderboard")
-                                    .font(.headline)
-                                    .foregroundColor(appTextColor())
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.2))
-                                    .cornerRadius(16)
-                            }
-                            .padding(.horizontal)
-                            
-                            // Settings Button
-                            Button(action: {
-                                showSettings = true
-                            }) {
-                                Text("⚙️ Settings")
-                                    .font(.headline)
-                                    .foregroundColor(appTextColor())
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.2))
-                                    .cornerRadius(16)
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 40)
-                        }
-                    }
-                    .onAppear {
-                        if !hasAnimated {
-                            hasAnimated = true
-                            triggerAnimations()
-                        }
-                        authenticateGameCenter()
-                        shuffledQuestions = questionSets[0].questions.map { question in
-                            Question(text: question.text,
-                                     options: question.options.shuffled(),
-                                     correctAnswer: question.correctAnswer)
-                        }
-                        
-                        // Animations
-                        withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
-                            showLogo = true
-                        }
-                        withAnimation(.easeIn(duration: 0.6).delay(0.3)) {
-                            showStats = true
-                        }
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.5).delay(1.2)) {
-                            showPlayButton = true
-                        }
-                        withAnimation(.easeIn(duration: 1.2).delay(0.3)) {
-                            showTitle = true
-                        }
-                    }
-                    .onChange(of: scenePhase) {
-                        if scenePhase == .background {
-                            hasAnimated = false
-                        }
-                        if scenePhase == .active && !hasAnimated {
-                            hasAnimated = true
-                            triggerAnimations()
-                        }
-                        if scenePhase == .background && gameStarted {
-                            gameStarted = false
-                            categorySelected = true
-                            currentIndex = 0
-                            score = 0
-                            selectedAnswer = nil
-                            stopTimer()
-                        }
-                    }
-                    .sheet(isPresented: $showSettings) {
-                        SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
-                    }
-                    
-                    // MARK: - Category Screen
-                } else if categorySelected && !gameStarted && !difficultySelected {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        ScrollView {
-                            VStack(spacing: 16) {
-                                // Header buttons
-                                HStack {
-                                    Button(action: {
-                                        categorySelected = false
-                                        gameStarted = false
-                                        difficultySelected = false
-                                    }) {
-                                        Image(systemName: "house.fill")
-                                            .font(.title2)
-                                            .foregroundColor(appTextColor().opacity(0.75))
-                                            .padding()
-                                    }
-                                    Spacer()
-                                    Button(action: {
-                                        gcManager.showLeaderboard()
-                                    }) {
-                                        Image(systemName: "trophy.fill")
-                                            .font(.title2)
-                                            .foregroundColor(appTextColor().opacity(0.75))
-                                            .padding(8)
-                                    }
-                                    Button(action: {
-                                        showSettings = true
-                                    }) {
-                                        Image(systemName: "gearshape.fill")
-                                            .font(.title2)
-                                            .foregroundColor(appTextColor().opacity(0.75))
-                                            .padding(8)
-                                    }
-                                }
-                                
-                                Text("Choose a Category")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(appTextColor())
-                                    .padding()
-                                
-                                GeometryReader { geo in
-                                    Button(action: {
-                                        let picked = pickRandomSet()
-                                        selectedCategory = picked
-                                        difficultySelected = true
-                                    }) {
-                                        Text("🎲 Surprise Me!")
-                                            .font(.headline)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(Color.white.opacity(0.2))
-                                            .cornerRadius(12)
-                                            .glittering()
-                                    }
-                                    .onChange(of: geo.frame(in: .global).minY) {
-                                        showFloatingDice = geo.frame(in: .global).minY < 0
-                                    }
-                                }
-                                .frame(height: 50)
-                                .padding(.horizontal)
-                                
-                                let sorted = questionSets.indices.sorted {
-                                    (setCounts[$0] ?? 0) > (setCounts[$1] ?? 0)
-                                }
-                                ForEach(sorted, id: \.self) { i in                            Button(action: {
-                                    selectedCategory = i
-                                    difficultySelected = true
-                                }) {
-                                    HStack {
-                                        Text(questionSets[i].name)
-                                        Spacer()
-                                        if let count = setCounts[i] {
-                                            Text("Played \(count)x")
-                                                .font(.caption)
-                                                .opacity(0.7)
-                                        }
-                                    }
-                                    .font(.headline)
-                                    .foregroundColor(appColor())
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                                }
-                                .padding(.horizontal)
-                                }
-                            }
-                        }
-                        
-                        // Floating dice button
-                        if showFloatingDice {
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Button(action: {
-                                        let picked = pickRandomSet()
-                                        selectedCategory = picked
-                                        difficultySelected = true
-                                    }) {
-                                        Text("🎲")
-                                            .font(.title)
-                                            .padding()
-                                            .background(Color.white)
-                                            .clipShape(Circle())
-                                            .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                                    }
-                                    .padding()
-                                }
-                            }
-                        }
-                    }
-                    
-                    // MARK: - Difficulty Screen
-                } else if difficultySelected && !gameStarted {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        
-                        // Back button for difficulty
-                        VStack {
-                            HStack {
-                                Button(action: {
-                                    difficultySelected = false
-                                }) {
-                                    Image(systemName: "chevron.left.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white.opacity(0.75))
-                                        .padding()
-                                }
-                                Spacer()
-                            }
-                            Spacer()
-                        }
-                        
-                        // Difficulty
-                        VStack(spacing: 20) {
-                            Text("Choose Difficulty")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(appTextColor())
-                                .padding()
-                            
-                            Text(questionSets[selectedCategory].name)
-                                .font(.title3)
-                                .foregroundColor(appTextColor().opacity(0.8))
-                            
-                            ForEach(["Shuffle", "Medium", "Hard"], id: \.self) { difficulty in
-                                Button(action: {
-                                    selectedDifficulty = difficulty.lowercased()
-                                    difficultySelected = false
-                                    startSet(index: selectedCategory)
-                                }) {
-                                    Text(difficulty)
-                                        .font(.headline)
-                                        .foregroundColor(appTextColor())
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white.opacity(0.2))
-                                        .cornerRadius(12)
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
-                    
-                    // MARK: - Results Screen
-                } else if quizFinished {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        VStack(spacing: 0) {
-                            
-                            // Top section - stars, score circle, message, category
-                            VStack(spacing: 12) {
-                                let stars = score >= 9 ? 4 : score >= 8 ? 3 : score >= 6 ? 2 : score >= 3 ? 1 : 0
-                                
-                                // Stars
-                                HStack(spacing: 8) {
-                                    ForEach(0..<3) { i in
-                                        Text(stars == 4 ? "🌟" : i < stars ? "⭐️" : "★")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(stars == 4 ? .yellow : i < stars ? .yellow : .white.opacity(0.3))
-                                    }
-                                }
-                                .padding(.top, 20)
-                                
-                                // Score circle
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.white.opacity(0.15))
-                                        .frame(width: 160, height: 160)
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 4)
-                                        .frame(width: 160, height: 160)
-                                    VStack(spacing: 2) {
-                                        Text("\(score)")
-                                            .font(.system(size: 64, weight: .bold, design: .rounded))
-                                            .foregroundColor(.white)
-                                        Text("out of 8")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                }
-                                .padding(.vertical, 8)
-                                
-                                // Message
-                                Text(score >= 9 ? "Legendary! 🌟" :
-                                        score == 8 ? "Perfect! 🏆" :
-                                        score >= 5 ? "Great job! 👏" :
-                                        score >= 3 ? "Not bad! 💪" : "Keep trying! 📚")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(appTextColor())
-                                
-                                // Category and difficulty
-                                HStack(spacing: 6) {
-                                    Text(questionSets[currentSetIndex].name)
-                                    Text("•")
-                                    Text(selectedDifficulty.capitalized)
-                                }
-                                .font(.headline)
-                                .foregroundColor(.white.opacity(0.7))
-                            }
-                            .frame(maxWidth: .infinity)
-                            
-                            // Bottom section - skips, stats, buttons
-                            VStack(spacing: 12) {
-                                
-                                // Skips used
-                                if skipsUsed > 0 {
-                                    VStack {
-                                        HStack {
-                                            Text("🎯 Skips used: \(skipsUsed)")
-                                                .font(.subheadline)
-                                                .foregroundColor(appTextColor())
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white.opacity(0.15))
-                                        .cornerRadius(12)
-                                        .padding(.horizontal)
-                                    }
-                                    .padding(.top, 20)               }
-                                
-                                // Personal best banner
-                                if score == questionSets[currentSetIndex].questions.count &&
-                                    fastestPerfectTime == timeElapsed {
-                                    HStack {
-                                        Text("⚡️ New fastest perfect time!")
-                                            .font(.subheadline)
-                                            .foregroundColor(appTextColor())
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.2))
-                                    .cornerRadius(12)
-                                    .padding(.horizontal)
-                                }
-                                
-                                // Stats cards
-                                HStack(spacing: 12) {
-                                    VStack(spacing: 4) {
-                                        Text(formatTime(timeElapsed))
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                        Text("Time")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.15))
-                                    .cornerRadius(16)
-                                    
-                                    VStack(spacing: 4) {
-                                        Text("\(Int((Double(score) / 8.0) * 100))%")
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                        Text("Accuracy")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.15))
-                                    .cornerRadius(16)
-                                    
-                                    VStack(spacing: 4) {
-                                        Text("\(perfectScores)")
-                                            .font(.title2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(appTextColor())
-                                        Text("Perfects")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white.opacity(0.15))
-                                    .cornerRadius(16)
-                                }
-                                .padding(.top, 30)
-                                .padding(.horizontal)
-                                
-                                Spacer()
-                                
-                                // Play Again button
-                                Button(action: {
-                                    currentIndex = 0
-                                    score = 0
-                                    selectedAnswer = nil
-                                    showNextButton = false
-                                    quizFinished = false
-                                    startSet(index: currentSetIndex)
-                                }) {
-                                    Text("▶ Play Again")
-                                        .font(.headline)
-                                        .foregroundColor(appColor())
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white)
-                                        .cornerRadius(12)
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 20)
-                                
-                                // New Category button
-                                Button(action: { restartQuiz() }) {
-                                    Text("🗂 New Category")
-                                        .font(.headline)
-                                        .foregroundColor(appTextColor())
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white.opacity(0.2))
-                                        .cornerRadius(12)
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 8)
-                                .padding(.bottom, 40)
-                            }
-                        }
-                    }
-                    
-                    // MARK: - Quiz Screen
-                } else {
-                    ZStack {
-                        appColor().ignoresSafeArea()
-                        
-                        VStack {
-                            // Top bar
-                            HStack {
-                                Button(action: {
-                                    timerPaused = true
-                                    showQuitAlert = true
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white.opacity(0.75))
-                                        .padding()
-                                }
-                                Spacer()
-                                // Timer
-                                Text("⏱ \(formatTime(timeElapsed))")
-                                    .font(.subheadline)
-                                    .foregroundColor(appTextColor().opacity(0.75))
-                                Spacer()
-                                Text("Q\(currentIndex + 1)/\(questionSets[currentSetIndex].questions.count)")
-                                    .font(.subheadline)
-                                    .foregroundColor(appTextColor().opacity(0.75))
-                                    .padding()
-                            }
-                            
-                            // Offline Banner
-                            if isOffline {
-                                Text("📵 Offline mode — stats won't be tracked")
-                                    .font(.caption)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(8)
-                                    .background(Color.black.opacity(0.3))
-                                    .cornerRadius(8)
-                                    .padding(.horizontal)
-                            }
-                            
-                            // Category and difficulty
-                            HStack {
-                                Text(questionSets[currentSetIndex].name)
-                                    .font(.caption)
-                                    .foregroundColor(appTextColor().opacity(0.7))
-                                Text("•")
-                                    .foregroundColor(.white.opacity(0.5))
-                                Text(selectedDifficulty.capitalized)
-                                    .font(.caption)
-                                    .foregroundColor(appTextColor().opacity(0.7))
-                            }
-                            
-                            Spacer()
-                            
-                            // Question and answers
-                            VStack(spacing: 20) {
-                                
-                                // Question card
-                                Text(shuffledQuestions[currentIndex].text)
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(appColor())
-                                    .multilineTextAlignment(.center)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .background(Color.white)
-                                    .cornerRadius(16)
-                                    .padding(.horizontal)
-                                
-                                // Answer buttons
-                                ForEach(0..<shuffledQuestions[currentIndex].options.count, id: \.self) { i in
-                                    Button(action: {
-                                        handleAnswer(i)
-                                    }) {
-                                        Text(shuffledQuestions[currentIndex].options[i])
-                                            .font(.headline)
-                                            .foregroundColor(appTextColor())                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(buttonColor(for: i))
-                                            .cornerRadius(12)
-                                    }
-                                    .disabled(selectedAnswer != nil)
-                                    .padding(.horizontal)
-                                }
-                                
-                                // Next and Skip buttons
-                                VStack(spacing: 12) {
-                                    if showNextButton {
-                                        Button(action: {
-                                            showNextButton = false
-                                            selectedAnswer = nil
-                                            if currentIndex + 1 < questionSets[currentSetIndex].questions.count {
-                                                currentIndex += 1
-                                            } else {
-                                                finishQuiz()
-                                            }
-                                        }) {
-                                            Text(currentIndex + 1 < questionSets[currentSetIndex].questions.count ? "Next →" : "Finish ✓")
-                                                .font(.headline)
-                                                .foregroundColor(appColor())
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                        }
-                                        .transition(.opacity)
-                                    }
-                                    
-                                    if selectedAnswer == nil && skipsUsed < skipsAllowed {
-                                        Button(action: {
-                                            skipQuestion()
-                                        }) {
-                                            Text("Skip (\(skipsAllowed - skipsUsed) left)")
-                                                .font(.headline)
-                                                .foregroundColor(appColor())
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.top, 4)
-                                
-                                // Hint text
-                                Text("Only need 8/10 for 100% • Skipping saves 2s ⏱")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.4))
-                            }
-                            
-                            Spacer()  // ← pushes content up from bottom
-                            
-                            // Progress bar
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.white.opacity(0.2))
-                                        .frame(height: 8)
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.white)
-                                        .frame(width: geo.size.width * CGFloat(currentIndex + 1) / CGFloat(questionSets[currentSetIndex].questions.count), height: 8)
-                                        .animation(.easeInOut, value: currentIndex)
-                                }
-                            }
-                            .frame(height: 8)
-                            .padding(.horizontal)
-                            .padding(.bottom)
-                            
-                        } // ← end of outer VStack
-                        .overlay(
-                            Group {
-                                if showQuitAlert {
-                                    ZStack {
-                                        Color.black.opacity(0.5).ignoresSafeArea()
-                                        VStack(spacing: 20) {
-                                            Text("⚠️ Leave Quiz?")
-                                                .font(.title2)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                            Text("If you leave you'll lose your progress and your time won't be saved.")
-                                                .font(.subheadline)
-                                                .foregroundColor(.white.opacity(0.8))
-                                                .multilineTextAlignment(.center)
-                                                .padding(.horizontal)
-                                            HStack(spacing: 16) {
-                                                Button(action: {
-                                                    timerPaused = false
-                                                    showQuitAlert = false
-                                                }) {
-                                                    Text("Stay")
-                                                        .font(.headline)
-                                                        .foregroundColor(appColor())
-                                                        .frame(maxWidth: .infinity)
-                                                        .padding()
-                                                        .background(Color.white)
-                                                        .cornerRadius(12)
-                                                }
-                                                Button(action: {
-                                                    showQuitAlert = false
-                                                    timerPaused = false
-                                                    gameStarted = false
-                                                    categorySelected = true
-                                                    currentIndex = 0
-                                                    score = 0
-                                                    selectedAnswer = nil
-                                                    stopTimer()
-                                                }) {
-                                                    Text("Leave")
-                                                        .font(.headline)
-                                                        .foregroundColor(.white)
-                                                        .frame(maxWidth: .infinity)
-                                                        .padding()
-                                                        .background(Color.red.opacity(0.8))
-                                                        .cornerRadius(12)
-                                                }
-                                            }
-                                            .padding(.horizontal)
-                                        }
-                                        .padding()
-                                        .background(appColor())
-                                        .cornerRadius(20)
-                                        .padding(.horizontal, 30)
-                                    }
-                                }
-                            }
-                        )
-                        
-                        // Confetti
-                        if showConfetti {
-                            ConfettiEffect()
-                                .ignoresSafeArea()
-                        }
-                        
-                    } // ← end of quiz screen ZStack
-                } // ← end of quiz screen else
-            }
-            
-            .sheet(isPresented: $showSettings) {
-                SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
-            }
+            if parts.count == 2, let points = Int(parts[1]) { result[String(parts[0])] = points }
         }
     }
 
-                                    #Preview {
-                                        ContentView()
-                                            .environmentObject(GameCenterManager.shared)
-                                    }
+    private func saveCategoryPoints(_ points: [String: Int]) {
+        categoryPointsData = points.map { "\($0.key):\($0.value)" }.joined(separator: "|")
+    }
+
+    private func updateStreak() {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        let today = formatter.string(from: Date())
+        let yesterday = formatter.string(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
+        if lastPlayedDate == today { return }
+        currentStreak = lastPlayedDate == yesterday ? currentStreak + 1 : 1
+        lastPlayedDate = today
+    }
+}
+
+#Preview {
+    ContentView().environmentObject(GameCenterManager.shared)
+}

@@ -4,15 +4,15 @@
 
 ## Architecture
 
-The project uses a small, view-driven SwiftUI architecture. `ContentView` is currently the primary feature coordinator: it owns the round state, presents each screen, starts/stops the timer, and writes local progress. Supporting views and model/service files keep shared UI, data, and platform integrations separate.
+The project uses a small, view-driven SwiftUI architecture. `ContentView` is the feature coordinator: it owns round state, routes between screens, starts/stops the timer, and writes local progress. Each major screen is a composable view in `QuizScreens.swift`; supporting views and model/service files keep shared UI, data, and platform integrations separate.
 
 ```text
 QuizAppApp
-  └─ ContentView (app flow and quiz state)
-       ├─ Start/dashboard
-       ├─ Category picker → difficulty picker
-       ├─ Quiz round → results
-       └─ Settings, theme picker, and help sheets
+  └─ ContentView (screen routing, quiz state, actions, persistence)
+       ├─ StartScreenView
+       ├─ CategorySelectionView → DifficultySelectionView
+       ├─ QuizRoundView → ResultsView
+       └─ LoadingView / settings, theme picker, and help sheets
 
 ContentView
   ├─ QuizAPI → Open Trivia DB (online questions)
@@ -25,7 +25,8 @@ ContentView
 ### Project layout
 
 - `QuizApp/QuizAppApp.swift` — App entry point; makes the shared `GameCenterManager` available to the SwiftUI view hierarchy.
-- `QuizApp/Views/ContentView.swift` — Main navigation/state machine and all core game screens.
+- `QuizApp/Views/ContentView.swift` — Main screen router, game state, gameplay actions, lifecycle handling, and local persistence.
+- `QuizApp/Views/QuizScreens.swift` — Composable loading, start, category, difficulty, quiz, and results screens, plus their screen-local UI components.
 - `QuizApp/Views/SettingsView.swift`, `ThemePickerView.swift`, `HelpView.swift` — Settings and informational sheets.
 - `QuizApp/Views/ConfettiEffect.swift`, `ShimmerEffect.swift` — Reusable celebration and glitter effects.
 - `QuizApp/Models/Question.swift` — `Question` and `QuestionSet` models, plus HTML entity cleanup for API text.
@@ -70,7 +71,7 @@ ContentView
 
 ## Current implementation notes
 
-- There is no separate navigation coordinator, view model layer, or persistence store yet; `ContentView` intentionally holds the current game state and persistence calls.
+- There is no separate view-model layer or persistence store yet; `ContentView` intentionally holds the current game state and persistence calls, while `QuizScreens.swift` keeps rendering concerns out of the coordinator.
 - The built-in question data is a fallback only. Online questions are the normal source when a network request succeeds.
 - Game Center score submission depends on the player having authenticated successfully and on the configured leaderboard existing in App Store Connect. The current start-screen authentication handler updates `ContentView` state separately from `GameCenterManager`, so the manager authentication flow needs to be connected before score submission can reliably occur.
 - Round/question counts are currently assumed from the selected local `QuestionSet` (ten questions per category).
