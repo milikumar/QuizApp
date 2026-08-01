@@ -1,0 +1,11 @@
+# Xcode build artifacts
+build/
+DerivedData/
+
+# User-specific Xcode settings (causes git conflicts)
+*.xcuserdatad
+*.xcuserstate
+xcuserdata/
+
+# macOS system files
+.DS_Store
