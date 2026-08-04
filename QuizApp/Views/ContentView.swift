@@ -53,8 +53,13 @@ struct ContentView: View {
     @AppStorage("appColor") private var appColorName = "indigo"
     @AppStorage("textColor") private var textColorName = "white"
     @AppStorage("perfectScores") private var perfectScores = 0
+    @AppStorage("eliteScores") private var eliteScores = 0
     @AppStorage("fastestPerfectTime") private var fastestPerfectTime = 0
     @AppStorage("categoryPoints") private var categoryPointsData = ""
+    @AppStorage("hardEliteEarned") private var hardEliteEarned = false
+    @AppStorage("consecutiveEliteAverageCount") private var consecutiveEliteAverageCount = 0
+    @AppStorage("earnedBadges") private var earnedBadgesData = ""
+    @AppStorage("onlineCategoryPlayCounts") private var onlineCategoryPlayCountsData = ""
 
     @EnvironmentObject private var gcManager: GameCenterManager
     @Environment(\.scenePhase) private var scenePhase
@@ -261,8 +266,10 @@ struct ContentView: View {
     private func finishQuiz() {
         setCounts[currentSetIndex] = (setCounts[currentSetIndex] ?? 0) + 1
         saveSetCounts(setCounts)
+        updateStreak()
 
         if !isOffline {
+            recordOnlineCategoryPlay()
             var points = categoryPoints
             let categoryName = questionSets[currentSetIndex].name
             points[categoryName] = (points[categoryName] ?? 0) + score
@@ -270,13 +277,20 @@ struct ContentView: View {
             gcManager.submitScore(score)
             totalPoints += score
             totalQuizzes += 1
-            updateStreak()
             if score >= 8 {
                 perfectScores += 1
                 if fastestPerfectTime == 0 || timeElapsed < fastestPerfectTime {
                     fastestPerfectTime = timeElapsed
                 }
             }
+            if score >= 9 {
+                eliteScores += 1
+                if selectedDifficulty == "hard" { hardEliteEarned = true }
+            }
+            consecutiveEliteAverageCount = score >= 8 ? consecutiveEliteAverageCount + 1 : 0
+            checkAndAwardBadges()
+        } else {
+            checkAndAwardStreakBadges()
         }
         quizFinished = true
     }
@@ -429,6 +443,41 @@ struct ContentView: View {
         if lastPlayedDate == today { return }
         currentStreak = lastPlayedDate == yesterday ? currentStreak + 1 : 1
         lastPlayedDate = today
+    }
+
+    // MARK: - Badge Progress
+    private func recordOnlineCategoryPlay() {
+        var counts = BadgeProgress.decodeCategoryCounts(onlineCategoryPlayCountsData)
+        counts[currentSetIndex] = (counts[currentSetIndex] ?? 0) + 1
+        onlineCategoryPlayCountsData = BadgeProgress.encodeCategoryCounts(counts)
+    }
+
+    private func checkAndAwardBadges() {
+        let snapshot = BadgeProgressSnapshot(
+            onlineCategoryPlayCounts: BadgeProgress.decodeCategoryCounts(onlineCategoryPlayCountsData),
+            categoryCount: questionSets.count,
+            totalQuizzes: totalQuizzes,
+            totalPoints: totalPoints,
+            perfectScores: perfectScores,
+            eliteScores: eliteScores,
+            hardEliteEarned: hardEliteEarned,
+            consecutiveEliteAverageCount: consecutiveEliteAverageCount,
+            fastestPerfectTime: fastestPerfectTime,
+            currentStreak: currentStreak
+        )
+        let earned = BadgeProgress.awardedBadgeIDs(
+            existing: BadgeProgress.decodeIDs(earnedBadgesData),
+            snapshot: snapshot
+        )
+        earnedBadgesData = BadgeProgress.encodeIDs(earned)
+    }
+
+    private func checkAndAwardStreakBadges() {
+        let earned = BadgeProgress.awardedStreakBadgeIDs(
+            existing: BadgeProgress.decodeIDs(earnedBadgesData),
+            currentStreak: currentStreak
+        )
+        earnedBadgesData = BadgeProgress.encodeIDs(earned)
     }
 }
 

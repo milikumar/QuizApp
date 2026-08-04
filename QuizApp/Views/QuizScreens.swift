@@ -87,14 +87,17 @@ struct StartScreenView: View {
             SummaryStat(value: totalQuizzes == 0 ? 0 : totalPoints / totalQuizzes, label: "Avg/8", textColor: textColor, isVisible: showNumbers)
             SummaryStat(value: perfectScores, label: "Elite", textColor: textColor, isVisible: showNumbers)
         }
-        .offset(x: showStats ? 0 : -300).opacity(showStats ? 1 : 0).padding(.horizontal, 8)
+        .offset(x: showStats ? 0 : -300).opacity(showStats ? 1 : 0).padding(.horizontal)
     }
 
     private var highlightCards: some View {
         TabView {
             HighlightCard(icon: "🔥", title: "\(currentStreak) Day Streak", subtitle: currentStreak == 0 ? "Play today to start your streak!" : "Keep it going!", textColor: textColor)
+                .padding(.horizontal, 4)
             HighlightCard(icon: "⚡️", title: fastestPerfectTime == 0 ? "No perfect yet!" : formatTime(fastestPerfectTime), subtitle: "Fastest Perfect Time", textColor: textColor)
+                .padding(.horizontal, 4)
             HighlightCard(icon: "🏆", title: bestCategory?.name ?? "No data yet!", subtitle: bestCategory.map { "\($0.points) points earned" } ?? "Best Category", textColor: textColor)
+                .padding(.horizontal, 4)
         }
         .tabViewStyle(.page(indexDisplayMode: .always)).frame(height: 110)
         .offset(x: showStats ? 0 : 300).opacity(showStats ? 1 : 0).padding(.horizontal)
@@ -287,7 +290,7 @@ struct ResultsView: View {
                 ResultStat(value: "\(perfectScores)", label: "Perfects", textColor: textColor)
             }.padding(.top, 30).padding(.horizontal)
             Spacer()
-            Button(action: onPlayAgain) { Text("▶ Play Again").font(.headline).foregroundColor(appColor).frame(maxWidth: .infinity).padding().background(.white).cornerRadius(12) }.padding(.horizontal).padding(.top, 20)
+            Button(action: onPlayAgain) { Text("▶ Play \(categoryName) Again").font(.headline).foregroundColor(appColor).frame(maxWidth: .infinity).padding().background(.white).cornerRadius(12) }.padding(.horizontal).padding(.top, 20)
             Button(action: onNewCategory) { Text("🗂 New Category").font(.headline).foregroundColor(textColor).frame(maxWidth: .infinity).padding().background(.white.opacity(0.2)).cornerRadius(12) }.padding(.horizontal).padding(.top, 8).padding(.bottom, 40)
         }
     }

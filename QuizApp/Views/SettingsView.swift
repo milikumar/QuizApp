@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Binding var textColorName: String
     @State private var showTheme = false
     @State private var showHelp = false
+    @State private var showBadges = false
     @EnvironmentObject var gcManager: GameCenterManager
     
     // Setting Text Color
@@ -75,7 +76,7 @@ struct SettingsView: View {
                     
                     // Badges
                     Button(action: {
-                        // Badges coming soon
+                        showBadges = true
                     }) {
                         HStack {
                             Text("🏅 Badges")
@@ -108,65 +109,20 @@ struct SettingsView: View {
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
-                    
-                    // Text Color
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("✏️ Text Color")
-                            .font(.headline)
-                            .foregroundColor(settingsTextColor())
-                            .padding(.horizontal)
-                        
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                if appColorName != "black" {
-                                    textColorName = "white"
-                                }
-                            }) {
-                                Text("White")
-                                    .font(.headline)
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(textColorName == "white" ? Color.yellow : Color.clear, lineWidth: 3)
-                                    )
-                            }
-                            
-                            Button(action: {
-                                if appColorName != "black" {
-                                    textColorName = "black"
-                                }
-                            }) {
-                                Text("Black")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.black)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(textColorName == "black" && appColorName != "black" ? Color.yellow : Color.clear, lineWidth: 3)
-                                    )
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.horizontal)
                 }
                 
                 Spacer()
             }
         }
         .sheet(isPresented: $showTheme) {
-            ThemePickerView(appColorName: $appColorName)
+            ThemePickerView(appColorName: $appColorName, textColorName: $textColorName)
         }
         .sheet(isPresented: $showHelp) {
             HelpView()
                 .environmentObject(gcManager)
+        }
+        .sheet(isPresented: $showBadges) {
+            BadgesView()
         }
     }
 }

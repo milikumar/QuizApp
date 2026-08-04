@@ -12,12 +12,13 @@ QuizAppApp
        ├─ StartScreenView
        ├─ CategorySelectionView → DifficultySelectionView
        ├─ QuizRoundView → ResultsView
-       └─ LoadingView / settings, theme picker, and help sheets
+       └─ LoadingView / settings, badges, theme picker, and help sheets
 
 ContentView
   ├─ QuizAPI → Open Trivia DB (online questions)
   ├─ QuestionData → bundled fallback questions (offline)
   ├─ UserDefaults / @AppStorage → preferences and player statistics
+  ├─ BadgeProgress → badge definitions, progress evaluation, and persisted awards
   ├─ GameCenterManager → authentication, score submission, leaderboard
   └─ SoundManager → correct/incorrect system sounds and haptics
 ```
@@ -27,7 +28,7 @@ ContentView
 - `QuizApp/QuizAppApp.swift` — App entry point; makes the shared `GameCenterManager` available to the SwiftUI view hierarchy.
 - `QuizApp/Views/ContentView.swift` — Main screen router, game state, gameplay actions, lifecycle handling, and local persistence.
 - `QuizApp/Views/QuizScreens.swift` — Composable loading, start, category, difficulty, quiz, and results screens, plus their screen-local UI components.
-- `QuizApp/Views/SettingsView.swift`, `ThemePickerView.swift`, `HelpView.swift` — Settings and informational sheets.
+- `QuizApp/Views/SettingsView.swift`, `ThemePickerView.swift`, `HelpView.swift`, `BadgesView.swift` — Settings and informational sheets, including the badge list.
 - `QuizApp/Views/ConfettiEffect.swift`, `ShimmerEffect.swift` — Reusable celebration and glitter effects.
 - `QuizApp/Models/Question.swift` — `Question` and `QuestionSet` models, plus HTML entity cleanup for API text.
 - `QuizApp/Models/QuestionData.swift` — Bundled fallback question banks.
@@ -35,6 +36,7 @@ ContentView
 - `QuizApp/Models/GameCenterManager.swift` — Game Center authentication, leaderboard submission, and access-point presentation.
 - `QuizApp/Models/SoundManager.swift` — System audio and haptic feedback.
 - `QuizApp/Models/AppColors.swift` — Central mapping of saved theme/text-color choices to SwiftUI colors.
+- `QuizApp/Models/Badges.swift` — Ordered 23-badge catalog, progress snapshot, and award/persistence helpers.
 - `QuizApp/Assets.xcassets` — App icon, accent color, and start-screen logo assets.
 
 ## Features built so far
@@ -61,6 +63,14 @@ ContentView
 - Dashboard tracks total quizzes, total points, average score, elite scores, daily streak, fastest perfect time, and best category.
 - Per-category points and play counts are persisted locally with `@AppStorage`/`UserDefaults`.
 - A score of 8 or more is treated as a perfect result for local perfect-score and fastest-time tracking; 9–10 is labeled “Legendary.”
+- Daily streaks and category play counts are recorded for completed offline rounds; points and score-based statistics remain online-only.
+
+### Badges
+
+- A Settings → Badges sheet presents all 23 badges as an ordered, grouped list: Completion, Score, Speed, Streak, and Master.
+- Each row shows an icon, name, and requirement; earned badges are full color with a checkmark, while locked badges are muted but remain readable. Tapping any badge explains its requirement or confirms it was earned.
+- Badge awards are persistent. Completion, score, and speed progress only use online rounds; streak badges can be earned from any completed round.
+- The app tracks the additional Elite-score count, Hard Elite achievement, 8+-score consistency streak, online-only category play counts, and earned badge IDs needed for the badge rules.
 
 ### Platform and presentation
 
@@ -78,4 +88,4 @@ ContentView
 
 ## Maintaining this document
 
-This README describes the code as of August 1, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.
+This README describes the code as of August 3, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.

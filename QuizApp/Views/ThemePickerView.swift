@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ThemePickerView: View {
     @Binding var appColorName: String
+    @Binding var textColorName: String
     @Environment(\.dismiss) var dismiss
     
     static let colorList: [(name: String, displayName: String, color: Color)] = [
@@ -58,6 +59,11 @@ struct ThemePickerView: View {
                                 
     var selectedColor: Color {
         colors.first { $0.name == appColorName }?.color ?? .indigo
+    }
+    
+    func pickerTextColor() -> Color {
+        if appColorName == "black" { return .white }
+        return textColorName == "black" ? Color.black : Color.white
     }
     
     var body: some View {
@@ -110,7 +116,77 @@ struct ThemePickerView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom)
+                    
+                    // Text Color
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("✏️ Text Color")
+                            .font(.headline)
+                            .foregroundColor(pickerTextColor())
+                            .padding(.horizontal)
+                        
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                if appColorName != "black" {
+                                    textColorName = "white"
+                                }
+                            }) {
+                                Text("White")
+                                    .font(.headline)
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(textColorName == "white" ? Color.yellow : Color.clear, lineWidth: 3)
+                                    )
+                            }
+                            
+                            Button(action: {
+                                if appColorName != "black" {
+                                    textColorName = "black"
+                                }
+                            }) {
+                                Text("Black")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.black)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(textColorName == "black" && appColorName != "black" ? Color.yellow : Color.clear, lineWidth: 3)
+                                    )
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Reset
+                    VStack(spacing: 6) {
+                        Button(action: {
+                            appColorName = "indigo"
+                            textColorName = "white"
+                        }) {
+                            Text("↺ Reset Theme")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(12)
+                        }
+                        Text("Resets app color and text color only — your stats and progress are untouched")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.4))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                    .padding(.bottom, 40)
                 }
             }
         }
@@ -118,5 +194,5 @@ struct ThemePickerView: View {
 }
 
 #Preview {
-    ThemePickerView(appColorName: .constant("indigo"))
+    ThemePickerView(appColorName: .constant("indigo"), textColorName: .constant("white"))
 }
