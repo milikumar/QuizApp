@@ -111,8 +111,10 @@ struct StartScreenView: View {
                     .frame(width: 200).padding().background(.white).cornerRadius(16)
             }
             .scaleEffect(showPlayButton ? 1 : 0.01).opacity(showPlayButton ? 1 : 0)
+            .tutorialAnchor(.play)
             ScreenButton(title: "🏆 Leaderboard", textColor: textColor, action: onLeaderboard)
             ScreenButton(title: "⚙️ Settings", textColor: textColor, action: onSettings)
+                .tutorialAnchor(.settings)
         }
         .padding(.horizontal).padding(.bottom, 40)
     }
@@ -156,6 +158,7 @@ struct CategorySelectionView: View {
     private var header: some View {
         HStack {
             Button(action: onHome) { Image(systemName: "house.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding() }
+                .tutorialAnchor(.categoryHome)
             Spacer()
             Button(action: onLeaderboard) { Image(systemName: "trophy.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding(8) }
             Button(action: onSettings) { Image(systemName: "gearshape.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding(8) }
@@ -168,6 +171,7 @@ struct CategorySelectionView: View {
                 Text("🎲 Surprise Me!").font(.headline).fontWeight(.bold).foregroundColor(textColor)
                     .frame(maxWidth: .infinity).padding().background(.white.opacity(0.2)).cornerRadius(12).glittering()
             }
+            .tutorialAnchor(.surpriseMe)
             .onChange(of: proxy.frame(in: .global).minY) { _, minY in onScrollPositionChange(minY < 0) }
         }
         .frame(height: 50).padding(.horizontal)
@@ -228,6 +232,7 @@ struct DifficultySelectionView: View {
                     }.padding(.horizontal)
                 }
             }
+            .tutorialAnchor(.difficulty)
         }
     }
 }
@@ -276,7 +281,9 @@ struct ResultsView: View {
             }.padding(.vertical, 8)
             Text(resultMessage).font(.title).fontWeight(.bold).foregroundColor(textColor)
             HStack(spacing: 6) { Text(categoryName); Text("•"); Text(difficulty.capitalized) }.font(.headline).foregroundColor(.white.opacity(0.7))
-        }.frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .tutorialAnchor(.results)
     }
 
     // MARK: - Result Actions and Details
@@ -345,8 +352,10 @@ struct QuizRoundView: View {
     private var quizHeader: some View {
         HStack {
             Button(action: onQuit) { Image(systemName: "xmark.circle.fill").font(.title2).foregroundColor(.white.opacity(0.75)).padding() }
+                .tutorialAnchor(.exit)
             Spacer()
             Text("⏱ \(formatTime(elapsedTime))").font(.subheadline).foregroundColor(textColor.opacity(0.75))
+                .tutorialAnchor(.timer)
             Spacer()
             Text("Q\(questionIndex + 1)/\(questionCount)").font(.subheadline).foregroundColor(textColor.opacity(0.75)).padding()
         }
@@ -391,6 +400,7 @@ struct QuizRoundView: View {
                     Text("Skip (\(skipsAllowed - skipsUsed) left)").font(.headline).foregroundColor(appColor).frame(maxWidth: .infinity)
                         .padding().background(.white).cornerRadius(12)
                 }
+                .tutorialAnchor(.skip)
             }
         }.padding(.horizontal).padding(.top, 4)
     }

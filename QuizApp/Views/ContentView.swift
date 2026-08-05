@@ -44,6 +44,8 @@ struct ContentView: View {
     @State private var showConfetti = false
     @State private var timerPaused = false
     @State private var isOffline = false
+    @State private var tutorialAnchorFrames: [TutorialTarget: CGRect] = [:]
+    @StateObject private var tutorial = TutorialManager()
 
     // MARK: - Persistent Player Data
     @AppStorage("totalPoints") private var totalPoints = 0
@@ -60,6 +62,7 @@ struct ContentView: View {
     @AppStorage("consecutiveEliteAverageCount") private var consecutiveEliteAverageCount = 0
     @AppStorage("earnedBadges") private var earnedBadgesData = ""
     @AppStorage("onlineCategoryPlayCounts") private var onlineCategoryPlayCountsData = ""
+    @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
 
     @EnvironmentObject private var gcManager: GameCenterManager
     @Environment(\.scenePhase) private var scenePhase
@@ -98,6 +101,17 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, phase in
             handleScenePhaseChange(phase)
         }
+        .onPreferenceChange(TutorialAnchorPreferenceKey.self) { tutorialAnchorFrames = $0 }
+        .overlay {
+            if let step = tutorial.step {
+                SpotlightOverlay(
+                    step: step,
+                    anchorFrames: tutorialAnchorFrames,
+                    onNext: advanceTutorial,
+                    onDone: finishTutorial
+                )
+            }
+        }
         .sheet(isPresented: $showSettings) {
             SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
         }
@@ -119,9 +133,13 @@ struct ContentView: View {
             showStats: showStats,
             showNumbers: showNumbers,
             showPlayButton: showPlayButton,
-            onPlay: { categorySelected = true },
-            onLeaderboard: gcManager.showLeaderboard,
-            onSettings: { showSettings = true }
+            onPlay: {
+                guard !tutorial.isActive || tutorial.step == .play else { return }
+                categorySelected = true
+                tutorial.advanceAfterPlay()
+            },
+            onLeaderboard: { if !tutorial.isActive { gcManager.showLeaderboard() } },
+            onSettings: { if !tutorial.isActive { showSettings = true } }
         )
         .onAppear(perform: prepareStartScreen)
     }
@@ -133,10 +151,10 @@ struct ContentView: View {
             categories: questionSets.map(\.name),
             playCounts: setCounts,
             showFloatingDice: showFloatingDice,
-            onHome: returnToStart,
-            onLeaderboard: gcManager.showLeaderboard,
-            onSettings: { showSettings = true },
-            onSelectCategory: selectCategory,
+            onHome: { if !tutorial.isActive { returnToStart() } },
+            onLeaderboard: { if !tutorial.isActive { gcManager.showLeaderboard() } },
+            onSettings: { if !tutorial.isActive { showSettings = true } },
+            onSelectCategory: { if !tutorial.isActive { selectCategory($0) } },
             onSurpriseMe: chooseRandomCategory,
             onScrollPositionChange: { showFloatingDice = $0 }
         )
@@ -147,11 +165,13 @@ struct ContentView: View {
             appColor: appColor(),
             textColor: appTextColor(),
             categoryName: questionSets[selectedCategory].name,
-            onBack: { difficultySelected = false },
+            onBack: { if !tutorial.isActive { difficultySelected = false } },
             onSelectDifficulty: { difficulty in
+                guard !tutorial.isActive || tutorial.step == .difficulty else { return }
                 selectedDifficulty = difficulty
                 difficultySelected = false
                 startSet(index: selectedCategory)
+                tutorial.advanceAfterDifficulty()
             }
         )
     }
@@ -168,8 +188,8 @@ struct ContentView: View {
             elapsedTime: timeElapsed,
             perfectScores: perfectScores,
             showNewFastestTime: score == questionCount && fastestPerfectTime == timeElapsed,
-            onPlayAgain: playAgain,
-            onNewCategory: restartQuiz
+            onPlayAgain: { if !tutorial.isActive { playAgain() } },
+            onNewCategory: { if !tutorial.isActive { restartQuiz() } }
         )
     }
 
@@ -190,12 +210,12 @@ struct ContentView: View {
             isOffline: isOffline,
             showQuitAlert: showQuitAlert,
             buttonColor: buttonColor,
-            onAnswer: handleAnswer,
-            onNext: advanceQuiz,
-            onSkip: skipQuestion,
-            onQuit: { timerPaused = true; showQuitAlert = true },
-            onStay: { timerPaused = false; showQuitAlert = false },
-            onLeave: leaveQuiz
+            onAnswer: { if !tutorial.isActive { handleAnswer($0) } },
+            onNext: { if !tutorial.isActive { advanceQuiz() } },
+            onSkip: { if !tutorial.isActive { skipQuestion() } },
+            onQuit: { if !tutorial.isActive { timerPaused = true; showQuitAlert = true } },
+            onStay: { if !tutorial.isActive { timerPaused = false; showQuitAlert = false } },
+            onLeave: { if !tutorial.isActive { leaveQuiz() } }
         )
         .overlay {
             if showConfetti {
@@ -331,11 +351,13 @@ struct ContentView: View {
     }
 
     private func chooseRandomCategory() {
+        guard !tutorial.isActive || tutorial.step == .surpriseMe else { return }
         if usedSetIndexes.count == questionSets.count { usedSetIndexes = [] }
         let available = questionSets.indices.filter { !usedSetIndexes.contains($0) }
         guard let index = available.randomElement() else { return }
         usedSetIndexes.append(index)
         selectCategory(index)
+        tutorial.advanceAfterSurpriseMe()
     }
 
     private func returnToStart() {
@@ -370,6 +392,7 @@ struct ContentView: View {
             }
         }
         withAnimation(.easeIn(duration: 1.2).delay(0.3)) { showLogo = true }
+        if !hasSeenTutorial && !tutorial.isActive { tutorial.start() }
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
@@ -443,6 +466,30 @@ struct ContentView: View {
         if lastPlayedDate == today { return }
         currentStreak = lastPlayedDate == yesterday ? currentStreak + 1 : 1
         lastPlayedDate = today
+    }
+
+    // MARK: - Onboarding Tutorial
+    private func advanceTutorial() {
+        guard let step = tutorial.step else { return }
+        tutorial.advance()
+        if step == .skip { showTutorialResults() }
+    }
+
+    private func showTutorialResults() {
+        stopTimer()
+        score = 8
+        skipsUsed = 1
+        timeElapsed = 42
+        selectedAnswer = nil
+        showNextButton = false
+        isOffline = false
+        gameStarted = false
+        quizFinished = true
+    }
+
+    private func finishTutorial() {
+        hasSeenTutorial = true
+        tutorial.complete()
     }
 
     // MARK: - Badge Progress

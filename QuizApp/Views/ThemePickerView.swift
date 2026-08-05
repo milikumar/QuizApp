@@ -144,9 +144,7 @@ struct ThemePickerView: View {
                             }
                             
                             Button(action: {
-                                if appColorName != "black" {
-                                    textColorName = "black"
-                                }
+                                textColorName = "black"
                             }) {
                                 Text("Black")
                                     .font(.headline)
@@ -160,6 +158,8 @@ struct ThemePickerView: View {
                                             .stroke(textColorName == "black" && appColorName != "black" ? Color.yellow : Color.clear, lineWidth: 3)
                                     )
                             }
+                            .disabled(appColorName == "black")
+                            .opacity(appColorName == "black" ? 0.45 : 1)
                         }
                         .padding(.horizontal)
                     }
