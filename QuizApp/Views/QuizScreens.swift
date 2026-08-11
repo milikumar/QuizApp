@@ -112,7 +112,6 @@ struct StartScreenView: View {
             }
             .scaleEffect(showPlayButton ? 1 : 0.01).opacity(showPlayButton ? 1 : 0)
             .tutorialAnchor(.play)
-            ScreenButton(title: "🏆 Leaderboard", textColor: textColor, action: onLeaderboard)
             ScreenButton(title: "⚙️ Settings", textColor: textColor, action: onSettings)
                 .tutorialAnchor(.settings)
         }
@@ -150,6 +149,7 @@ struct CategorySelectionView: View {
                     categoryButtons
                 }
             }
+            .onAppear { onScrollPositionChange(false) }
             if showFloatingDice { floatingDice }
         }
     }
@@ -160,7 +160,7 @@ struct CategorySelectionView: View {
             Button(action: onHome) { Image(systemName: "house.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding() }
                 .tutorialAnchor(.categoryHome)
             Spacer()
-            Button(action: onLeaderboard) { Image(systemName: "trophy.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding(8) }
+        //  Button(action: onLeaderboard) { Image(systemName: "trophy.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding(8) }
             Button(action: onSettings) { Image(systemName: "gearshape.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding(8) }
         }
     }

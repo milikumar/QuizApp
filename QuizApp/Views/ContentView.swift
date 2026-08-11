@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var difficultySelected = false
     @State private var isLoading = false
     @State private var showSettings = false
+    @State private var showCategoryStats = false
     @State private var showQuitAlert = false
 
     // MARK: - Presentation State
@@ -39,7 +40,7 @@ struct ContentView: View {
     @State private var showPlayButton = false
     @State private var showNumbers = false
     @State private var hasAnimated = false
-    @State private var showFloatingDice = true
+    @State private var showFloatingDice = false
     @State private var showNextButton = false
     @State private var showConfetti = false
     @State private var timerPaused = false
@@ -63,6 +64,9 @@ struct ContentView: View {
     @AppStorage("earnedBadges") private var earnedBadgesData = ""
     @AppStorage("onlineCategoryPlayCounts") private var onlineCategoryPlayCountsData = ""
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
+    @AppStorage("categoryPerfectCounts") private var categoryPerfectCountsData = ""
+    @AppStorage("categoryEliteCounts") private var categoryEliteCountsData = ""
+    @AppStorage("categoryFastestTimes") private var categoryFastestTimesData = ""
 
     @EnvironmentObject private var gcManager: GameCenterManager
     @Environment(\.scenePhase) private var scenePhase
@@ -113,7 +117,12 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView(isShowing: $showSettings, appColorName: $appColorName, textColorName: $textColorName)
+            SettingsView(
+                isShowing: $showSettings,
+                appColorName: $appColorName,
+                textColorName: $textColorName,
+                categoryStats: categoryStatsList
+            )
         }
     }
 
@@ -261,14 +270,14 @@ struct ContentView: View {
     private func startSet(index: Int) {
         isLoading = true
         let categoryName = questionSets[index].name
-        fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions in
+        fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions, isOffline in
             DispatchQueue.main.async {
                 isLoading = false
                 if let questions {
                     shuffledQuestions = questions
-                    isOffline = false
+                    self.isOffline = false
                 } else {
-                    isOffline = true
+                    self.isOffline = isOffline
                     shuffledQuestions = questionSets[index].questions.map {
                         Question(text: $0.text, options: $0.options.shuffled(), correctAnswer: $0.correctAnswer)
                     }
@@ -302,10 +311,22 @@ struct ContentView: View {
                 if fastestPerfectTime == 0 || timeElapsed < fastestPerfectTime {
                     fastestPerfectTime = timeElapsed
                 }
+                var perfects = getCategoryPerfectCounts()
+                perfects[categoryName] = (perfects[categoryName] ?? 0) + 1
+                saveCategoryPerfectCounts(perfects)
+
+                var fastest = getCategoryFastestTimes()
+                if fastest[categoryName] == nil || fastest[categoryName] == 0 || timeElapsed < fastest[categoryName]! {
+                    fastest[categoryName] = timeElapsed
+                }
+                saveCategoryFastestTimes(fastest)
             }
             if score >= 9 {
                 eliteScores += 1
                 if selectedDifficulty == "hard" { hardEliteEarned = true }
+                var elites = getCategoryEliteCounts()
+                elites[categoryName] = (elites[categoryName] ?? 0) + 1
+                saveCategoryEliteCounts(elites)
             }
             consecutiveEliteAverageCount = score >= 8 ? consecutiveEliteAverageCount + 1 : 0
             checkAndAwardBadges()
@@ -419,6 +440,24 @@ struct ContentView: View {
     private var bestCategory: (name: String, points: Int)? {
         categoryPoints.max(by: { $0.value < $1.value }).map { ($0.key, $0.value) }
     }
+    
+    private var categoryStatsList: [CategoryStatRow] {
+        let points = categoryPoints
+        let perfects = getCategoryPerfectCounts()
+        let elites = getCategoryEliteCounts()
+        let fastest = getCategoryFastestTimes()
+        return questionSets.indices.map { index in
+            let name = questionSets[index].name
+            return CategoryStatRow(
+                name: name,
+                plays: setCounts[index] ?? 0,
+                points: points[name] ?? 0,
+                perfectCount: perfects[name] ?? 0,
+                eliteCount: elites[name] ?? 0,
+                fastestTime: fastest[name] ?? 0
+            )
+        }
+    }
 
     private func buttonColor(for index: Int) -> Color {
         guard let selectedAnswer else { return Color.white.opacity(0.2) }
@@ -444,6 +483,42 @@ struct ContentView: View {
     private func saveSetCounts(_ counts: [Int: Int]) {
         guard let data = try? JSONEncoder().encode(counts) else { return }
         UserDefaults.standard.set(data, forKey: "setCounts")
+    }
+    
+    private func getCategoryPerfectCounts() -> [String: Int] {
+        guard !categoryPerfectCountsData.isEmpty else { return [:] }
+        return categoryPerfectCountsData.split(separator: "|").reduce(into: [:]) { result, pair in
+            let parts = pair.split(separator: ":")
+            if parts.count == 2, let count = Int(parts[1]) { result[String(parts[0])] = count }
+        }
+    }
+
+    private func saveCategoryPerfectCounts(_ counts: [String: Int]) {
+        categoryPerfectCountsData = counts.map { "\($0.key):\($0.value)" }.joined(separator: "|")
+    }
+
+    private func getCategoryEliteCounts() -> [String: Int] {
+        guard !categoryEliteCountsData.isEmpty else { return [:] }
+        return categoryEliteCountsData.split(separator: "|").reduce(into: [:]) { result, pair in
+            let parts = pair.split(separator: ":")
+            if parts.count == 2, let count = Int(parts[1]) { result[String(parts[0])] = count }
+        }
+    }
+
+    private func saveCategoryEliteCounts(_ counts: [String: Int]) {
+        categoryEliteCountsData = counts.map { "\($0.key):\($0.value)" }.joined(separator: "|")
+    }
+
+    private func getCategoryFastestTimes() -> [String: Int] {
+        guard !categoryFastestTimesData.isEmpty else { return [:] }
+        return categoryFastestTimesData.split(separator: "|").reduce(into: [:]) { result, pair in
+            let parts = pair.split(separator: ":")
+            if parts.count == 2, let time = Int(parts[1]) { result[String(parts[0])] = time }
+        }
+    }
+
+    private func saveCategoryFastestTimes(_ times: [String: Int]) {
+        categoryFastestTimesData = times.map { "\($0.key):\($0.value)" }.joined(separator: "|")
     }
 
     private func getCategoryPoints() -> [String: Int] {

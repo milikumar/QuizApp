@@ -12,7 +12,7 @@ QuizAppApp
        ├─ StartScreenView
        ├─ CategorySelectionView → DifficultySelectionView
        ├─ QuizRoundView → ResultsView
-       └─ LoadingView / settings, badges, theme picker, help, and onboarding overlay
+       └─ LoadingView / settings, badges, theme picker, category stats, help, and onboarding overlay
 
 ContentView
   ├─ QuizAPI → Open Trivia DB (online questions)
@@ -29,7 +29,7 @@ ContentView
 - `QuizApp/QuizAppApp.swift` — App entry point; makes the shared `GameCenterManager` available to the SwiftUI view hierarchy.
 - `QuizApp/Views/ContentView.swift` — Main screen router, game state, gameplay actions, lifecycle handling, and local persistence.
 - `QuizApp/Views/QuizScreens.swift` — Composable loading, start, category, difficulty, quiz, and results screens, plus their screen-local UI components.
-- `QuizApp/Views/SettingsView.swift`, `ThemePickerView.swift`, `HelpView.swift`, `BadgesView.swift` — Settings and informational sheets, including the badge list. `ThemePickerView` also contains text-color selection and theme reset controls.
+- `QuizApp/Views/SettingsView.swift`, `ThemePickerView.swift`, `HelpView.swift`, `BadgesView.swift`, `CategoryStatsView.swift` — Settings and informational sheets, including the badge list and per-category stat breakdown. `ThemePickerView` also contains text-color selection and theme reset controls.
 - `QuizApp/Views/SpotlightOverlay.swift` — Reusable dimming/cutout overlay, tutorial callout, and view-anchor preference helper.
 - `QuizApp/Views/ConfettiEffect.swift`, `ShimmerEffect.swift` — Reusable celebration and glitter effects.
 - `QuizApp/Models/Question.swift` — `Question` and `QuestionSet` models, plus HTML entity cleanup for API text.
@@ -40,6 +40,7 @@ ContentView
 - `QuizApp/Models/AppColors.swift` — Central mapping of saved theme/text-color choices to SwiftUI colors.
 - `QuizApp/Models/Badges.swift` — Ordered 23-badge catalog, progress snapshot, and award/persistence helpers.
 - `QuizApp/Models/TutorialManager.swift` — Ten-step onboarding state machine and spotlight target definitions.
+- `QuizApp/Models/CategoryStatRow.swift` — Per-category statistics model (plays, points, perfects, elites, fastest time).
 - `QuizApp/Assets.xcassets` — App icon, accent color, and start-screen logo assets.
 
 ## Features built so far
@@ -49,7 +50,7 @@ ContentView
 - 10-question, four-answer multiple-choice rounds.
 - 19 selectable categories: General Knowledge, Science & Nature, History, Geography, Sports, Movies & TV, Technology, Music, Animals, Video Games, Mythology, Board Games, Art, Vehicles, Comics, Anime & Manga, Cartoons, Books, and Gadgets.
 - Medium, hard, and shuffled difficulty choices when using the online trivia source.
-- “Surprise Me” selects a category not recently chosen; category ordering also reflects how often each has been played.
+- “Surprise Me” selects a category not recently chosen; category ordering also reflects how often each has been played. Its floating dice shortcut stays hidden initially and appears only after the Surprise Me button scrolls off-screen.
 - Immediate correct/incorrect feedback, revealed correct answer, progress bar, elapsed timer, two skips per round, sound/haptic feedback, and confetti for correct answers.
 - A leave-quiz confirmation prevents accidental loss of an active round.
 
@@ -57,8 +58,9 @@ ContentView
 
 - Online rounds request category/difficulty-filtered questions from [Open Trivia DB](https://opentdb.com/).
 - API question text and options are HTML-decoded before display, and options are shuffled.
-- If the request fails, a bundled ten-question set for the selected category is used instead.
-- Offline rounds clearly show an offline notice and do not submit points, stats, or leaderboard scores.
+- The question client spaces requests at least five seconds apart and retries the API’s rate-limit response, preventing rapid replay requests from falling back to predictable bundled questions. [Open Trivia DB documents a one-request-per-five-seconds IP limit.](https://opentdb.com/api_config.php)
+- If the trivia service request fails, a bundled ten-question set for the selected category is used instead without incorrectly marking the player offline.
+- The offline notice appears only when the device reports that it has no internet connection; those rounds do not submit points, stats, or leaderboard scores.
 
 ### Results and player progress
 
@@ -77,21 +79,32 @@ ContentView
 - Badge awards are persistent. Completion, score, and speed progress only use online rounds; streak badges can be earned from any completed round.
 - The app tracks the additional Elite-score count, Hard Elite achievement, 8+-score consistency streak, online-only category play counts, and earned badge IDs needed for the badge rules.
 
+### Category statistics
+
+- A Settings → Category Stats sheet lists every category with its play count, points earned, perfect-score count, elite-score count, and fastest perfect time, sorted by points earned.
+- Per-category perfect counts, elite counts, and fastest times are persisted locally alongside the existing per-category points and play counts, all recorded only for online rounds.
+- Categories with no perfect score yet show a placeholder fastest time instead of a zero duration.
+
 ### Theme and appearance
 
 - Settings → App Theme presents a selectable, 30-color grid, text-color choices, and a Reset Theme control in one sheet; the former standalone text-color settings row was consolidated here.
 - Reset Theme restores Indigo / White without changing player statistics or progress, and its caption makes that scope explicit. Midnight enforces white text and visibly disables the black-text option.
 
+### Sound and vibration feedback
+
+- Settings → Feedback is the final Settings item and provides independent, persistent toggles for answer sound effects and vibration (haptic) feedback. Its custom high-contrast switches use a shadowed thumb so their on/off state remains clear in either text-color mode.
+- Correct and incorrect answer feedback reads these preferences at the time of the answer, so either form of feedback can be disabled without affecting gameplay.
+
 ### First-launch tutorial
 
 - A persisted `hasSeenTutorial` flag runs a 10-step Spotlight walkthrough only on the app’s first launch.
-- The tutorial dims the interface while leaving the relevant live control visible, then explains Settings, Play, Home, Surprise Me, difficulty, timer, exit, skip, results, and where to find the Manual and Badges.
+- The tutorial measures actual control frames in global screen coordinates and converts them into the overlay’s drawing space, so cutouts stay aligned when screen layouts change; it explains Settings, Play, Home, Surprise Me, difficulty, timer, exit, skip, results, and where to find the Manual and Badges.
 - Informational steps provide Next; Play, Surprise Me, and difficulty steps advance only through the actual highlighted controls.
 - The quiz segment uses a non-persistent demo result so a new player can see the Results screen without answering a full round. Offline mode and category “Played Xx” details remain in the Manual.
 
 ### Platform and presentation
 
-- Game Center integration code for authentication, score submission to leaderboard ID `com.cleverrmind.score`, and leaderboard access from the dashboard/category screens.
+- Game Center integration code supports authentication and score submission to leaderboard ID `com.cleverrmind.score`. Leaderboard controls are temporarily hidden from the dashboard and category screens.
 - Configurable app theme (30 named colors) and white/black text preference, with white text enforced for the Midnight theme.
 - Animated dashboard entrance, logo asset, shimmer treatment, confetti, help/manual, and a responsive category list with a floating dice shortcut.
 - The target supports iPhone and iPad and is configured with a minimum iOS deployment target of 18.0.
@@ -103,7 +116,8 @@ ContentView
 - Game Center score submission depends on the player having authenticated successfully and on the configured leaderboard existing in App Store Connect. The current start-screen authentication handler updates `ContentView` state separately from `GameCenterManager`, so the manager authentication flow needs to be connected before score submission can reliably occur.
 - Round/question counts are currently assumed from the selected local `QuestionSet` (ten questions per category).
 - `ThemePickerView` requires both an `appColorName` and a `textColorName` binding from callers.
+- `SettingsView` now requires a `categoryStats` array from its caller in addition to the existing theme/text-color bindings.
 
 ## Maintaining this document
 
-This README describes the code as of August 3, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.
+This README describes the code as of August 11, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.

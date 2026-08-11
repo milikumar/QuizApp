@@ -13,7 +13,10 @@ struct SpotlightOverlay: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let spotlightFrame = resolvedSpotlightFrame(in: proxy.size)
+            let overlayFrame = proxy.frame(in: .global)
+            let spotlightFrame = resolvedSpotlightFrame.map {
+                $0.offsetBy(dx: -overlayFrame.minX, dy: -overlayFrame.minY)
+            }
             ZStack {
                 if let spotlightFrame {
                     SpotlightCutout(cutout: spotlightFrame.insetBy(dx: -8, dy: -8))
@@ -35,22 +38,9 @@ struct SpotlightOverlay: View {
         .ignoresSafeArea()
     }
 
-    private func resolvedSpotlightFrame(in size: CGSize) -> CGRect? {
+    private var resolvedSpotlightFrame: CGRect? {
         guard let target = step.target else { return nil }
-        return anchorFrames[target] ?? fallbackFrame(for: target, in: size)
-    }
-
-    private func fallbackFrame(for target: TutorialTarget, in size: CGSize) -> CGRect {
-        switch target {
-        case .settings: CGRect(x: size.width * 0.08, y: size.height * 0.82, width: size.width * 0.84, height: 56)
-        case .play: CGRect(x: size.width * 0.22, y: size.height * 0.62, width: size.width * 0.56, height: 60)
-        case .categoryHome, .exit: CGRect(x: 8, y: 42, width: 54, height: 54)
-        case .surpriseMe: CGRect(x: size.width * 0.06, y: size.height * 0.23, width: size.width * 0.88, height: 54)
-        case .difficulty: CGRect(x: size.width * 0.06, y: size.height * 0.30, width: size.width * 0.88, height: size.height * 0.32)
-        case .timer: CGRect(x: size.width * 0.38, y: 44, width: size.width * 0.24, height: 40)
-        case .skip: CGRect(x: size.width * 0.06, y: size.height * 0.68, width: size.width * 0.88, height: 52)
-        case .results: CGRect(x: size.width * 0.05, y: size.height * 0.11, width: size.width * 0.90, height: size.height * 0.56)
-        }
+        return anchorFrames[target]
     }
 }
 

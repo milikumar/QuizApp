@@ -8,22 +8,37 @@
 import AudioToolbox
 import UIKit
 
-class SoundManager {
+final class SoundManager {
     static let shared = SoundManager()
+
+    private let soundEffectsKey = "soundEffectsEnabled"
+    private let hapticsKey = "hapticsEnabled"
+
+    private var soundEffectsEnabled: Bool {
+        UserDefaults.standard.object(forKey: soundEffectsKey) as? Bool ?? true
+    }
+
+    private var hapticsEnabled: Bool {
+        UserDefaults.standard.object(forKey: hapticsKey) as? Bool ?? true
+    }
     
     func playCorrect() {
-        // Sound
-        AudioServicesPlaySystemSound(1057)
-        // Haptic feedback (works even on silent)
-        let feedback = UINotificationFeedbackGenerator()
-        feedback.notificationOccurred(.success)
+        if soundEffectsEnabled {
+            AudioServicesPlaySystemSound(1057)
+        }
+        if hapticsEnabled {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.notificationOccurred(.success)
+        }
     }
     
     func playWrong() {
-        // Sound
-        AudioServicesPlaySystemSound(1053)
-        // Haptic feedback (works even on silent)
-        let feedback = UINotificationFeedbackGenerator()
-        feedback.notificationOccurred(.error)
+        if soundEffectsEnabled {
+            AudioServicesPlaySystemSound(1053)
+        }
+        if hapticsEnabled {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.notificationOccurred(.error)
+        }
     }
 }

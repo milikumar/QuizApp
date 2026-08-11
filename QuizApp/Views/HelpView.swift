@@ -78,7 +78,7 @@ struct HelpView: View {
                         ])
                         
                         helpSection(title: "🎲 Categories", items: [
-                            "Choose from 20 categories across different topics",
+                            "Choose from 19 categories across different topics",
                             "Tap Surprise Me for a random category",
                             "Most played categories appear at the top",
                             "The floating 🎲 button appears when you scroll down"
@@ -101,7 +101,8 @@ struct HelpView: View {
                         
                         helpSection(title: "⚙️ Settings", items: [
                             "Change your app theme color in Settings → App Theme",
-                            "Switch between white and black text in Settings → Text Color",
+                            "Switch between white and black text in Settings → App Theme",
+                            "Turn answer sounds and vibration feedback on or off in Settings → Feedback",
                             "Access settings from the start screen or category screen"
                         ])
                         
