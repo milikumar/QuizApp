@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var showHelp = false
     @State private var showBadges = false
     let categoryStats: [CategoryStatRow]
+    let onStartTutorial: () -> Void
     @State private var showCategoryStats = false
     @AppStorage("soundEffectsEnabled") private var soundEffectsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
@@ -131,6 +132,25 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal)
 
+                    // Tutorial
+                    Button(action: {
+                        isShowing = false
+                        onStartTutorial()
+                    }) {
+                        HStack {
+                            Text("🧭 Tutorial")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.headline)
+                        .foregroundColor(settingsTextColor())
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+
                     feedbackControls
                 }
                 
@@ -221,6 +241,7 @@ private struct FeedbackToggleStyle: ToggleStyle {
         isShowing: .constant(true),
         appColorName: .constant("indigo"),
         textColorName: .constant("white"),
-        categoryStats: []
+        categoryStats: [],
+        onStartTutorial: {}
     )
 }

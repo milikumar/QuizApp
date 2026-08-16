@@ -63,7 +63,6 @@ struct ContentView: View {
     @AppStorage("consecutiveEliteAverageCount") private var consecutiveEliteAverageCount = 0
     @AppStorage("earnedBadges") private var earnedBadgesData = ""
     @AppStorage("onlineCategoryPlayCounts") private var onlineCategoryPlayCountsData = ""
-    @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     @AppStorage("categoryPerfectCounts") private var categoryPerfectCountsData = ""
     @AppStorage("categoryEliteCounts") private var categoryEliteCountsData = ""
     @AppStorage("categoryFastestTimes") private var categoryFastestTimesData = ""
@@ -112,7 +111,8 @@ struct ContentView: View {
                     step: step,
                     anchorFrames: tutorialAnchorFrames,
                     onNext: advanceTutorial,
-                    onDone: finishTutorial
+                    onDone: finishTutorial,
+                    onCancel: cancelTutorial
                 )
             }
         }
@@ -121,7 +121,12 @@ struct ContentView: View {
                 isShowing: $showSettings,
                 appColorName: $appColorName,
                 textColorName: $textColorName,
-                categoryStats: categoryStatsList
+                categoryStats: categoryStatsList,
+                onStartTutorial: {
+                    guard !tutorial.isActive else { return }
+                    returnToStart()
+                    tutorial.start()
+                }
             )
         }
     }
@@ -402,7 +407,7 @@ struct ContentView: View {
     }
 
     private func prepareStartScreen() {
-        if !hasAnimated {
+            if !hasAnimated {
             hasAnimated = true
             triggerAnimations()
         }
@@ -413,7 +418,6 @@ struct ContentView: View {
             }
         }
         withAnimation(.easeIn(duration: 1.2).delay(0.3)) { showLogo = true }
-        if !hasSeenTutorial && !tutorial.isActive { tutorial.start() }
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
@@ -563,7 +567,21 @@ struct ContentView: View {
     }
 
     private func finishTutorial() {
-        hasSeenTutorial = true
+        tutorial.complete()
+    }
+
+    private func cancelTutorial() {
+        stopTimer()
+        timerPaused = false
+        showQuitAlert = false
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        skipsUsed = 0
+        quizFinished = false
+        gameStarted = false
+        difficultySelected = false
+        categorySelected = false
         tutorial.complete()
     }
 
@@ -601,6 +619,7 @@ struct ContentView: View {
         )
         earnedBadgesData = BadgeProgress.encodeIDs(earned)
     }
+    
 }
 
 #Preview {

@@ -10,6 +10,7 @@ struct SpotlightOverlay: View {
     let anchorFrames: [TutorialTarget: CGRect]
     let onNext: () -> Void
     let onDone: () -> Void
+    let onCancel: () -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -17,10 +18,11 @@ struct SpotlightOverlay: View {
             let spotlightFrame = resolvedSpotlightFrame.map {
                 $0.offsetBy(dx: -overlayFrame.minX, dy: -overlayFrame.minY)
             }
-            ZStack {
+            ZStack(alignment: .topTrailing) {
                 if let spotlightFrame {
                     SpotlightCutout(cutout: spotlightFrame.insetBy(dx: -8, dy: -8))
                         .fill(.black.opacity(0.68), style: FillStyle(eoFill: true))
+                        .ignoresSafeArea()
                         .allowsHitTesting(false)
                 } else {
                     Color.black.opacity(0.68).ignoresSafeArea().allowsHitTesting(false)
@@ -33,14 +35,38 @@ struct SpotlightOverlay: View {
                     onNext: onNext,
                     onDone: onDone
                 )
+
+                SkipButton(action: onCancel)
+                    .padding(.top, 8)
+                    .padding(.trailing, 16)
             }
         }
-        .ignoresSafeArea()
     }
 
     private var resolvedSpotlightFrame: CGRect? {
         guard let target = step.target else { return nil }
         return anchorFrames[target]
+    }
+}
+
+// MARK: - Skip Control
+
+private struct SkipButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("Skip Tutorial")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.black.opacity(0.6))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.25), lineWidth: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -61,13 +87,17 @@ private struct TutorialCallout: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if !step.requiresInteraction {
-                Button(step == .closing ? "Done" : "Next", action: step == .closing ? onDone : onNext)
-                    .font(.headline)
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                Button(action: step == .closing ? onDone : onNext) {
+                    Text(step == .closing ? "Done" : "Next")
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(16)

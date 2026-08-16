@@ -19,7 +19,7 @@ ContentView
   ├─ QuestionData → bundled fallback questions (offline)
   ├─ UserDefaults / @AppStorage → preferences and player statistics
   ├─ BadgeProgress → badge definitions, progress evaluation, and persisted awards
-  ├─ TutorialManager → first-launch walkthrough state and spotlight targets
+  ├─ TutorialManager → on-demand walkthrough state and spotlight targets
   ├─ GameCenterManager → authentication, score submission, leaderboard
   └─ SoundManager → correct/incorrect system sounds and haptics
 ```
@@ -95,9 +95,9 @@ ContentView
 - Settings → Feedback is the final Settings item and provides independent, persistent toggles for answer sound effects and vibration (haptic) feedback. Its custom high-contrast switches use a shadowed thumb so their on/off state remains clear in either text-color mode.
 - Correct and incorrect answer feedback reads these preferences at the time of the answer, so either form of feedback can be disabled without affecting gameplay.
 
-### First-launch tutorial
+### On-demand tutorial
 
-- A persisted `hasSeenTutorial` flag runs a 10-step Spotlight walkthrough only on the app’s first launch.
+- A Settings → Tutorial row runs a 10-step Spotlight walkthrough on demand; it no longer starts automatically on first launch. Starting it from Settings returns to the start screen first so the walkthrough's screen sequence lines up.
 - The tutorial measures actual control frames in global screen coordinates and converts them into the overlay’s drawing space, so cutouts stay aligned when screen layouts change; it explains Settings, Play, Home, Surprise Me, difficulty, timer, exit, skip, results, and where to find the Manual and Badges.
 - Informational steps provide Next; Play, Surprise Me, and difficulty steps advance only through the actual highlighted controls.
 - The quiz segment uses a non-persistent demo result so a new player can see the Results screen without answering a full round. Offline mode and category “Played Xx” details remain in the Manual.
