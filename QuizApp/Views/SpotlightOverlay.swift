@@ -20,7 +20,10 @@ struct SpotlightOverlay: View {
             }
             ZStack(alignment: .topTrailing) {
                 if let spotlightFrame {
-                    SpotlightCutout(cutout: spotlightFrame.insetBy(dx: -8, dy: -8))
+                    let fullScreenCutout = spotlightFrame
+                        .insetBy(dx: -8, dy: -8)
+                        .offsetBy(dx: proxy.safeAreaInsets.leading, dy: proxy.safeAreaInsets.top)
+                    SpotlightCutout(cutout: fullScreenCutout)
                         .fill(.black.opacity(0.68), style: FillStyle(eoFill: true))
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
