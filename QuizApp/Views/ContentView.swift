@@ -46,9 +46,11 @@ struct ContentView: View {
     @State private var timerPaused = false
     @State private var isOffline = false
     @State private var tutorialAnchorFrames: [TutorialTarget: CGRect] = [:]
+    @State private var isFirstLaunch = false
     @StateObject private var tutorial = TutorialManager()
 
     // MARK: - Persistent Player Data
+    @AppStorage("hasLaunchedBefore") private var hasLaunchedBefore = false
     @AppStorage("totalPoints") private var totalPoints = 0
     @AppStorage("totalQuizzes") private var totalQuizzes = 0
     @AppStorage("currentStreak") private var currentStreak = 0
@@ -143,6 +145,7 @@ struct ContentView: View {
             fastestPerfectTime: fastestPerfectTime,
             bestCategory: bestCategory,
             playerName: gcManager.isAuthenticated ? gcManager.playerName : nil,
+            isFirstLaunch: isFirstLaunch,
             showLogo: showLogo,
             showStats: showStats,
             showNumbers: showNumbers,
@@ -203,7 +206,8 @@ struct ContentView: View {
             perfectScores: perfectScores,
             showNewFastestTime: score == questionCount && fastestPerfectTime == timeElapsed,
             onPlayAgain: { if !tutorial.isActive { playAgain() } },
-            onNewCategory: { if !tutorial.isActive { restartQuiz() } }
+            onNewCategory: { if !tutorial.isActive { restartQuiz() } },
+            onHome: { if !tutorial.isActive { returnToStart() } }
         )
     }
 
@@ -390,6 +394,7 @@ struct ContentView: View {
         categorySelected = false
         gameStarted = false
         difficultySelected = false
+        quizFinished = false
     }
 
     // MARK: - Timer and Lifecycle
@@ -410,6 +415,10 @@ struct ContentView: View {
             if !hasAnimated {
             hasAnimated = true
             triggerAnimations()
+        }
+        if !hasLaunchedBefore {
+            isFirstLaunch = true
+            hasLaunchedBefore = true
         }
         authenticateGameCenter()
         if shuffledQuestions.isEmpty {

@@ -65,7 +65,8 @@ ContentView
 ### Results and player progress
 
 - Results show score, rating, category/difficulty, elapsed time, accuracy, skips used, and a fastest-perfect-time callout when applicable.
-- The primary results action is labeled “Play [Category] Again,” dynamically inserting the just-played category; “New Category” returns to category selection.
+- The primary results action is labeled “Play [Category] Again,” dynamically inserting the just-played category; “New Category” returns to category selection. A Home button in the top-left corner (matching the one on the category screen) returns straight to the start screen.
+- The start screen greets first-time players with “Welcome!” instead of “Welcome back!”; a persisted `hasLaunchedBefore` flag makes this a one-time first-session message that never reappears on later launches.
 - Dashboard tracks total quizzes, total points, average score, elite scores, daily streak, fastest perfect time, and best category.
 - The dashboard’s summary cards and primary actions use matching horizontal padding, and each swipeable highlight card has a small horizontal inset.
 - Per-category points and play counts are persisted locally with `@AppStorage`/`UserDefaults`.
@@ -99,8 +100,10 @@ ContentView
 
 - A Settings → Tutorial row runs a 10-step Spotlight walkthrough on demand; it no longer starts automatically on first launch. Starting it from Settings returns to the start screen first so the walkthrough's screen sequence lines up.
 - The tutorial measures actual control frames in global screen coordinates and converts them into the overlay’s drawing space, so cutouts stay aligned when screen layouts change; it explains Settings, Play, Home, Surprise Me, difficulty, timer, exit, skip, results, and where to find the Manual and Badges.
+- A “Skip Tutorial” button stays pinned in the top-right corner throughout the walkthrough, independent of the per-step callout, so it stays tappable even on steps that require interacting with the highlighted control directly. Skipping resets any in-progress demo/quiz state and returns to the start screen.
 - Informational steps provide Next; Play, Surprise Me, and difficulty steps advance only through the actual highlighted controls.
 - The quiz segment uses a non-persistent demo result so a new player can see the Results screen without answering a full round. Offline mode and category “Played Xx” details remain in the Manual.
+- The overlay's dimming layer and spotlight cutout are positioned to fully cover the screen, including the status bar and home-indicator strips, while the callout and Skip button stay within the safe area.
 
 ### Platform and presentation
 
@@ -120,4 +123,4 @@ ContentView
 
 ## Maintaining this document
 
-This README describes the code as of August 11, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.
+This README describes the code as of August 18, 2026. When adding or changing a meaningful feature, update the relevant section above in the same change—especially the architecture diagram, project layout, gameplay behavior, persistence rules, external integrations, and deployment requirements.

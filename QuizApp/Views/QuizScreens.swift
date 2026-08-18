@@ -36,6 +36,7 @@ struct StartScreenView: View {
     let fastestPerfectTime: Int
     let bestCategory: (name: String, points: Int)?
     let playerName: String?
+    let isFirstLaunch: Bool
     let showLogo: Bool
     let showStats: Bool
     let showNumbers: Bool
@@ -72,7 +73,7 @@ struct StartScreenView: View {
 
     private var welcome: some View {
         VStack(spacing: 12) {
-            Text("Welcome back!").font(.custom("Chalkboard SE", size: 22)).foregroundColor(.white.opacity(0.9))
+            Text(isFirstLaunch ? "Welcome!" : "Welcome back!").font(.custom("Chalkboard SE", size: 22)).foregroundColor(.white.opacity(0.9))
             if let playerName {
                 Text(playerName).font(.custom("Chalkboard SE", size: 22)).foregroundColor(textColor)
             }
@@ -252,6 +253,7 @@ struct ResultsView: View {
     let showNewFastestTime: Bool
     let onPlayAgain: () -> Void
     let onNewCategory: () -> Void
+    let onHome: () -> Void
 
     private var stars: Int { score >= 9 ? 4 : score >= 8 ? 3 : score >= 6 ? 2 : score >= 3 ? 1 : 0 }
 
@@ -261,6 +263,13 @@ struct ResultsView: View {
             VStack(spacing: 0) {
                 resultHeader
                 resultDetails
+            }
+            VStack {
+                HStack {
+                    Button(action: onHome) { Image(systemName: "house.fill").font(.title2).foregroundColor(textColor.opacity(0.75)).padding() }
+                    Spacer()
+                }
+                Spacer()
             }
         }
     }
