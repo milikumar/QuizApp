@@ -278,6 +278,10 @@ struct ContentView: View {
 
     private func startSet(index: Int) {
         isLoading = true
+        currentIndex = 0
+        score = 0
+        selectedAnswer = nil
+        showNextButton = false
         let categoryName = questionSets[index].name
         fetchQuestions(for: categoryName, difficulty: selectedDifficulty) { questions, isOffline in
             DispatchQueue.main.async {
