@@ -50,7 +50,7 @@ sequenceDiagram
 
     Player->>Screen: Tap Play, category, difficulty
     Screen->>Main: Call a passed-in action closure
-    Main->>Main: Set state; SwiftUI shows next screen
+    Main->>Main: Set state and SwiftUI shows next screen
     Main->>API: Request 10 multiple-choice questions
     API-->>Main: Decoded and shuffled Question values
     alt Request fails
@@ -60,8 +60,8 @@ sequenceDiagram
     Main-->>Screen: Pass current question and state
     Player->>Screen: Choose an answer
     Screen->>Main: Call onAnswer(index)
-    Main->>Main: Check answer, update score and feedback state
-    Main-->>Screen: New state; SwiftUI redraws affected UI
+    Main->>Main: Check answer and update score and feedback state
+    Main-->>Screen: New state and SwiftUI redraws affected UI
     Player->>Screen: Finish the last question
     Screen->>Main: Advance action
     Main->>Main: Update local stats and badge progress
