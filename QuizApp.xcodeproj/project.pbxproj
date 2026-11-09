@@ -12,6 +12,7 @@
 
 /* Begin PBXFileReference section */
 		2503053C301EAD7F002AE306 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		6C8B2A9E7F3340A1B25D01C2 /* ARCHITECTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ARCHITECTURE.md; sourceTree = "<group>"; };
 		25F202252FE9E5E70040B3C0 /* QuizApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuizApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -38,6 +39,7 @@
 			isa = PBXGroup;
 			children = (
 				2503053C301EAD7F002AE306 /* README.md */,
+				6C8B2A9E7F3340A1B25D01C2 /* ARCHITECTURE.md */,
 				25F202272FE9E5E70040B3C0 /* QuizApp */,
 				25F202262FE9E5E70040B3C0 /* Products */,
 			);
